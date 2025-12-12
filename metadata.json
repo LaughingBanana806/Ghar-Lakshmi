@@ -1,0 +1,7 @@
+{
+  "name": "PaisaPop",
+  "description": "A vibrant, Indian Maximalist financial literacy platform inspired by vintage postcards, truck art, and Bollywood posters.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

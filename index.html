@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PaisaPop - Financial Wisdom</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Poppins:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'india-cream': '#FFF8E7',
+              'india-pink': '#FF007F', // Rani Pink
+              'india-marigold': '#FF9933',
+              'india-blue': '#1034A6', // Peacock Blue
+              'india-green': '#138808', // Flag Green
+              'india-yellow': '#FFCC00',
+              'india-chili': '#E32636',
+              'india-purple': '#4B0082',
+            },
+            fontFamily: {
+              serif: ['Rozha One', 'serif'],
+              sans: ['Poppins', 'sans-serif'],
+            },
+            boxShadow: {
+              'pop': '6px 6px 0px 0px rgba(0, 0, 0, 1)',
+              'pop-hover': '3px 3px 0px 0px rgba(0, 0, 0, 1)',
+              'neon': '0 0 10px rgba(255, 0, 127, 0.5)',
+            },
+            backgroundImage: {
+              'pattern-dots': 'radial-gradient(#FF007F 2px, transparent 2px)',
+              'pattern-checkers': 'repeating-linear-gradient(45deg, #FFCC00 25%, transparent 25%, transparent 75%, #FFCC00 75%, #FFCC00), repeating-linear-gradient(45deg, #FFCC00 25%, #FFF8E7 25%, #FFF8E7 75%, #FFCC00 75%, #FFCC00)',
+            },
+            animation: {
+              'spin-slow': 'spin 20s linear infinite',
+              'marquee': 'marquee 25s linear infinite',
+              'pop-in': 'popIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards',
+            },
+            keyframes: {
+              marquee: {
+                '0%': { transform: 'translateX(0%)' },
+                '100%': { transform: 'translateX(-100%)' },
+              },
+              popIn: {
+                '0%': { opacity: '0', transform: 'scale(0.9) translateY(20px)' },
+                '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        background-color: #FFF8E7;
+        color: #1a1a1a;
+        background-image: radial-gradient(#FF9933 0.5px, transparent 0.5px);
+        background-size: 20px 20px;
+      }
+      .clip-scallop-bottom {
+        clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 98% 98%, 96% 100%, 94% 98%, 92% 100%, 90% 98%, 88% 100%, 86% 98%, 84% 100%, 82% 98%, 80% 100%, 78% 98%, 76% 100%, 74% 98%, 72% 100%, 70% 98%, 68% 100%, 66% 98%, 64% 100%, 62% 98%, 60% 100%, 58% 98%, 56% 100%, 54% 98%, 52% 100%, 50% 98%, 48% 100%, 46% 98%, 44% 100%, 42% 98%, 40% 100%, 38% 98%, 36% 100%, 34% 98%, 32% 100%, 30% 98%, 28% 100%, 26% 98%, 24% 100%, 22% 98%, 20% 100%, 18% 98%, 16% 100%, 14% 98%, 12% 100%, 10% 98%, 8% 100%, 6% 98%, 4% 100%, 2% 98%, 0% 100%);
+      }
+      .clip-ticket {
+        clip-path: polygon(10% 0, 90% 0, 100% 10%, 100% 90%, 90% 100%, 10% 100%, 0 90%, 0 10%);
+      }
+      .text-stroke-sm {
+        -webkit-text-stroke: 1px black;
+      }
+      .text-stroke-md {
+        -webkit-text-stroke: 2px black;
+      }
+      .bg-vintage-paper {
+        background-color: #FFF8E7;
+        background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ff9933' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.561.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
