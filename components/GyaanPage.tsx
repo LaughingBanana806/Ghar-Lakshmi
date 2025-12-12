@@ -8,7 +8,6 @@ const concepts = [
   {
     title: "Inflation",
     subtitle: "The Price Rise Monster",
-    category: "Basics",
     icon: <TrendingUp className="w-8 h-8" />,
     desc: "Why your Chai costs ₹10 today but was ₹2 yesterday.",
     bg: "bg-india-pink",
@@ -17,7 +16,6 @@ const concepts = [
   {
     title: "Diversification",
     subtitle: "Not All Eggs in One Basket",
-    category: "Investing",
     icon: <PieChart className="w-8 h-8" />,
     desc: "Like a Thali meal - a little bit of everything is best for health.",
     bg: "bg-india-blue",
@@ -26,7 +24,6 @@ const concepts = [
   {
     title: "Emergency Fund",
     subtitle: "Rainy Day Savings",
-    category: "Basics",
     icon: <ShieldCheck className="w-8 h-8" />,
     desc: "Money kept under the mattress (bank) for when trouble knocks.",
     bg: "bg-india-green",
@@ -35,7 +32,6 @@ const concepts = [
   {
     title: "Dividends",
     subtitle: "Bonus Pay",
-    category: "Investing",
     icon: <Coins className="w-8 h-8" />,
     desc: "When the company shares its laddu with you.",
     bg: "bg-india-marigold",
@@ -44,7 +40,6 @@ const concepts = [
   {
     title: "SIP",
     subtitle: "Small Drops, Big Ocean",
-    category: "Investing",
     icon: <Calculator className="w-8 h-8" />,
     desc: "Invest small amounts regularly. Consistency is king! Discipline creates wealth.",
     bg: "bg-india-purple",
@@ -53,7 +48,6 @@ const concepts = [
   {
     title: "Compound Interest",
     subtitle: "The 8th Wonder",
-    category: "Basics",
     icon: <Zap className="w-8 h-8" />,
     desc: "Money making more money. The magic of time that Einstein praised.",
     bg: "bg-india-chili",
@@ -62,7 +56,6 @@ const concepts = [
   {
     title: "Bull & Bear",
     subtitle: "Tezi vs Mandi",
-    category: "Investing",
     icon: <LineChart className="w-8 h-8" />,
     desc: "Bull runs up (profit), Bear swipes down (loss). Know your jungle.",
     bg: "bg-india-blue",
@@ -71,7 +64,6 @@ const concepts = [
   {
     title: "Fixed Deposit",
     subtitle: "Safe & Sound",
-    category: "Banking & Loans",
     icon: <Landmark className="w-8 h-8" />,
     desc: "Low risk, steady return. The classic Indian choice for peace of mind.",
     bg: "bg-india-green",
@@ -80,7 +72,6 @@ const concepts = [
   {
     title: "IPO",
     subtitle: "First Show Ticket",
-    category: "Investing",
     icon: <Briefcase className="w-8 h-8" />,
     desc: "Buying shares when a company first enters the market. High risk, high drama.",
     bg: "bg-india-pink",
@@ -89,7 +80,6 @@ const concepts = [
   {
     title: "Credit Score",
     subtitle: "Reputation Meter",
-    category: "Banking & Loans",
     icon: <Scale className="w-8 h-8" />,
     desc: "Keep it high to get loans easily. Don't be a Defaulter!",
     bg: "bg-india-marigold",
@@ -98,7 +88,6 @@ const concepts = [
   {
     title: "Gold",
     subtitle: "Sona Kitna Sona Hai",
-    category: "Investing",
     icon: <Gem className="w-8 h-8" />,
     desc: "The evergreen hedge against bad times. A tradition that pays off.",
     bg: "bg-india-yellow",
@@ -107,7 +96,6 @@ const concepts = [
   {
     title: "Insurance",
     subtitle: "Safety Chhatri",
-    category: "Banking & Loans",
     icon: <Umbrella className="w-8 h-8" />,
     desc: "Protection for life and health. Essential umbrella for rainy days.",
     bg: "bg-india-blue",
@@ -193,7 +181,6 @@ const staticExplanations: Record<string, ExplanationResult> = {
 const GyaanPage: React.FC = () => {
   const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
   const [explanation, setExplanation] = useState<ExplanationResult | null>(null);
-  const [activeCategory, setActiveCategory] = useState('All');
   
   // Video Generation State
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -243,11 +230,6 @@ const GyaanPage: React.FC = () => {
     }
   };
 
-  const categories = ['All', 'Basics', 'Investing', 'Banking & Loans'];
-  const filteredConcepts = activeCategory === 'All' 
-    ? concepts 
-    : concepts.filter(c => c.category === activeCategory);
-
   return (
     <div className="min-h-screen pt-0 pb-24 relative overflow-hidden bg-vintage-paper">
       {/* Background Decor - Wrapped in fixed inset to prevent layout shift */}
@@ -273,28 +255,11 @@ const GyaanPage: React.FC = () => {
            </div>
         </div>
 
-        {/* Category Tabs */}
-        <div className="flex justify-center gap-3 md:gap-6 mb-12 flex-wrap">
-            {categories.map(cat => (
-                <button 
-                    key={cat}
-                    onClick={() => setActiveCategory(cat)}
-                    className={`px-5 py-2 md:px-8 md:py-3 rounded-full font-bold font-serif text-sm md:text-lg uppercase tracking-wider border-2 border-black transition-all ${
-                        activeCategory === cat 
-                        ? 'bg-india-pink text-white shadow-[4px_4px_0_0_black] -translate-y-1' 
-                        : 'bg-white text-black hover:bg-gray-50'
-                    }`}
-                >
-                    {cat}
-                </button>
-            ))}
-        </div>
-
         {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 min-h-[400px]">
-          {filteredConcepts.map((item, idx) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          {concepts.map((item, idx) => (
             <div 
-              key={item.title} 
+              key={idx} 
               className={`group relative ${item.bg} p-2 shadow-pop hover:shadow-pop-hover hover:-translate-y-1 transition-all duration-300 opacity-0 animate-pop-in`}
               style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'forwards' }}
               onClick={() => handleExplain(item.title)}
@@ -337,7 +302,7 @@ const GyaanPage: React.FC = () => {
                     </button>
                     
                     <div className="flex justify-between items-end opacity-60 mt-4">
-                        <span className="text-[10px] uppercase tracking-widest text-white">{item.category}</span>
+                        <span className="text-[10px] uppercase tracking-widest text-white">Series A</span>
                         <span className="text-[10px] uppercase tracking-widest text-white">#{idx+1 < 10 ? `0${idx+1}` : idx+1}</span>
                     </div>
                 </div>

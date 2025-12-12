@@ -1,44 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Users, ArrowRight, X, Trash2, CheckCircle2, Crown, Calculator, RefreshCw, Briefcase, TrendingUp, Flame, MessageSquare, IndianRupee, Trophy, AlertCircle, Loader2, Send, Eye, ThumbsUp, ThumbsDown, User, Globe } from 'lucide-react';
-import { KittyGroup, UserProfile } from '../types';
-import { roastPortfolio, checkSalary } from '../services/geminiService';
+import { Users, ArrowRight, X, Trash2, CheckCircle2, Crown, Calculator, RefreshCw } from 'lucide-react';
+import { KittyGroup } from '../types';
 
-interface CommunityPageProps {
-    user?: UserProfile | null;
-}
-
-// Mock Data for Community Feed
-const MOCK_POSTS = [
-  {
-    id: '1',
-    type: 'salary',
-    title: 'Product Designer, 4 YOE, Mumbai',
-    details: 'Current: 15 LPA. Offer: 18 LPA. Is this low?',
-    timestamp: '2h ago',
-    reviews: [
-        { id: 'r1', author: 'Design Lead (Anon)', text: 'Market is hot for UX. You can push for 22 LPA easily.', sentiment: 'positive' },
-        { id: 'r2', author: 'Startup Founder', text: '18 is fair for mid-level unless you have a top tier portfolio.', sentiment: 'neutral' }
-    ]
-  },
-  {
-    id: '2',
-    type: 'roast',
-    title: '24M, Aggressive Growth',
-    details: '50% Small Cap MF, 30% Crypto, 20% Cash. No FD.',
-    timestamp: '4h ago',
-    reviews: [
-        { id: 'r3', author: 'Risk Manager', text: 'One crash and you are eating Maggi for a month. Add some Gold.', sentiment: 'negative' },
-        { id: 'r4', author: 'Crypto Believer', text: 'WAGMI! Keep holding.', sentiment: 'positive' }
-    ]
-  }
-];
-
-const ALIASES = ["Market Wolf", "SIP Sage", "D-Street Dude", "Lazy Investor", "Tax Ninja", "Frugal Fox"];
-
-const CommunityPage: React.FC<CommunityPageProps> = ({ user }) => {
-  const isSaral = user?.mode === 'saral';
-
-  // --- Saral State (Kitty Party) ---
+const CommunityPage: React.FC = () => {
   const [isKittyModalOpen, setIsKittyModalOpen] = useState(false);
   const [kittyGroup, setKittyGroup] = useState<KittyGroup | null>(null);
   const [tempGroupName, setTempGroupName] = useState('');
@@ -46,34 +10,12 @@ const CommunityPage: React.FC<CommunityPageProps> = ({ user }) => {
   const [tempMembers, setTempMembers] = useState<string[]>([]);
   const [newMemberName, setNewMemberName] = useState('');
 
-  // --- Smart State (Roast & Salary) ---
-  const [smartTab, setSmartTab] = useState<'roast' | 'salary'>('roast');
-  
-  // Roast State
-  const [portfolio, setPortfolio] = useState({ age: 28, stocks: 30, fd: 40, gold: 20, crypto: 10 });
-  const [roastResult, setRoastResult] = useState<{score: number, roast: string, fix: string} | null>(null);
-  const [isRoasting, setIsRoasting] = useState(false);
-
-  // Salary State
-  const [salaryForm, setSalaryForm] = useState({ role: 'Product Manager', exp: 4, location: 'Bangalore', ctc: 12 });
-  const [salaryResult, setSalaryResult] = useState<{marketRange: string, verdict: string, script: string} | null>(null);
-  const [isCheckingSalary, setIsCheckingSalary] = useState(false);
-
-  // Boardroom Feed State
-  const [boardroomPosts, setBoardroomPosts] = useState(MOCK_POSTS);
-  const [selectedPost, setSelectedPost] = useState<any | null>(null);
-  const [peerComment, setPeerComment] = useState('');
-  const [hasPostedToCommunity, setHasPostedToCommunity] = useState(false);
-
-  // Load Kitty Data (Saral Only)
+  // Load Kitty Data
   useEffect(() => {
-    if (isSaral) {
-        const storedKitty = localStorage.getItem('kittyGroup');
-        if (storedKitty) setKittyGroup(JSON.parse(storedKitty));
-    }
-  }, [isSaral]);
+    const storedKitty = localStorage.getItem('kittyGroup');
+    if (storedKitty) setKittyGroup(JSON.parse(storedKitty));
+  }, []);
 
-  // --- Saral Handlers ---
   const handleAddTempMember = () => {
     if(newMemberName.trim()) {
         setTempMembers([...tempMembers, newMemberName.trim()]);
@@ -86,6 +28,7 @@ const CommunityPage: React.FC<CommunityPageProps> = ({ user }) => {
         alert("Please fill in all details and add at least one member.");
         return;
     }
+    
     const newGroup: KittyGroup = {
         name: tempGroupName,
         amount: parseInt(tempAmount),
@@ -95,6 +38,7 @@ const CommunityPage: React.FC<CommunityPageProps> = ({ user }) => {
             hasPaid: false
         })),
     };
+    
     setKittyGroup(newGroup);
     localStorage.setItem('kittyGroup', JSON.stringify(newGroup));
   };
@@ -126,6 +70,7 @@ const CommunityPage: React.FC<CommunityPageProps> = ({ user }) => {
   const handleResetMonth = () => {
       if(!kittyGroup) return;
       if(!window.confirm("Start new month? This clears current payments.")) return;
+      
       const updatedMembers = kittyGroup.members.map(m => ({ ...m, hasPaid: false }));
       const updatedGroup = { 
           ...kittyGroup, 
@@ -147,363 +92,6 @@ const CommunityPage: React.FC<CommunityPageProps> = ({ user }) => {
       }
   };
 
-  // --- Smart Handlers ---
-  const handleRoast = async () => {
-      setIsRoasting(true);
-      setRoastResult(null);
-      setHasPostedToCommunity(false);
-      try {
-          const result = await roastPortfolio({ 
-              age: portfolio.age, 
-              allocation: { Stocks: portfolio.stocks, FD: portfolio.fd, Gold: portfolio.gold, Crypto: portfolio.crypto } 
-          });
-          setRoastResult(result);
-      } catch (e) {
-          alert("Roast machine broken.");
-      } finally {
-          setIsRoasting(false);
-      }
-  };
-
-  const handleSalaryCheck = async () => {
-      setIsCheckingSalary(true);
-      setSalaryResult(null);
-      setHasPostedToCommunity(false);
-      try {
-          const result = await checkSalary(salaryForm);
-          setSalaryResult(result);
-      } catch (e) {
-          alert("Could not fetch salary data.");
-      } finally {
-          setIsCheckingSalary(false);
-      }
-  };
-
-  const handlePostToBoardroom = () => {
-      if(hasPostedToCommunity) return;
-      
-      const newPost = {
-          id: Date.now().toString(),
-          type: smartTab,
-          title: smartTab === 'salary' 
-            ? `${salaryForm.role}, ${salaryForm.exp} YOE, ${salaryForm.location}`
-            : `${portfolio.age}Y Old, ${portfolio.stocks}% Equity`,
-          details: smartTab === 'salary'
-            ? `Current CTC: ${salaryForm.ctc} LPA. AI Verdict: ${salaryResult?.verdict}`
-            : `Allocation: Stocks ${portfolio.stocks}%, FD ${portfolio.fd}%, Gold ${portfolio.gold}%, Crypto ${portfolio.crypto}%. AI Score: ${roastResult?.score}/10`,
-          timestamp: 'Just now',
-          reviews: []
-      };
-
-      setBoardroomPosts([newPost, ...boardroomPosts]);
-      setHasPostedToCommunity(true);
-      alert("Posted anonymously! Wait for peers to destroy... err, review you.");
-  };
-
-  const handleAddReview = () => {
-      if(!peerComment.trim() || !selectedPost) return;
-      
-      const randomAlias = ALIASES[Math.floor(Math.random() * ALIASES.length)];
-      
-      const newReview = {
-          id: Date.now().toString(),
-          author: randomAlias,
-          text: peerComment,
-          sentiment: 'neutral'
-      };
-
-      const updatedPosts = boardroomPosts.map(post => 
-          post.id === selectedPost.id 
-          ? { ...post, reviews: [...post.reviews, newReview] }
-          : post
-      );
-
-      setBoardroomPosts(updatedPosts);
-      // Update selected post view as well
-      setSelectedPost({ ...selectedPost, reviews: [...selectedPost.reviews, newReview] });
-      setPeerComment('');
-  };
-
-  // --- Render for Smart User (Urban) ---
-  if (!isSaral) {
-      return (
-          <div className="min-h-screen bg-vintage-paper pb-20 pt-8">
-              <div className="container mx-auto px-4">
-                  <div className="text-center mb-10">
-                      <h1 className="text-5xl font-serif text-india-blue text-stroke-sm mb-2">The Boardroom</h1>
-                      <p className="font-sans text-gray-600 uppercase tracking-widest text-sm font-bold">Anonymous Benchmarking & Social Proof</p>
-                  </div>
-
-                  <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Main Tool Area */}
-                    <div className="lg:col-span-2 bg-india-cream border-[8px] border-double border-black shadow-pop p-2 h-fit">
-                        {/* Tabs */}
-                        <div className="flex border-b-4 border-black bg-white">
-                            <button 
-                                onClick={() => setSmartTab('roast')}
-                                className={`flex-1 py-4 font-bold uppercase tracking-widest flex items-center justify-center gap-2 ${smartTab === 'roast' ? 'bg-india-chili text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-                            >
-                                <Flame size={20} /> Portfolio Roast
-                            </button>
-                            <button 
-                                onClick={() => setSmartTab('salary')}
-                                className={`flex-1 py-4 font-bold uppercase tracking-widest flex items-center justify-center gap-2 ${smartTab === 'salary' ? 'bg-india-green text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-                            >
-                                <Briefcase size={20} /> Salary Poker
-                            </button>
-                        </div>
-
-                        {/* Content */}
-                        <div className="p-6 md:p-8">
-                            {smartTab === 'roast' ? (
-                                <div className="space-y-6">
-                                    {/* Roast Input */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="space-y-4">
-                                            <div>
-                                                <label className="block text-xs font-bold uppercase mb-1">Your Age</label>
-                                                <input type="number" value={portfolio.age} onChange={e => setPortfolio({...portfolio, age: parseInt(e.target.value)})} className="w-full p-2 border-2 border-black rounded" />
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-xs font-bold uppercase mb-1">Stocks %</label>
-                                                    <input type="number" value={portfolio.stocks} onChange={e => setPortfolio({...portfolio, stocks: parseInt(e.target.value)})} className="w-full p-2 border-2 border-black rounded" />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-bold uppercase mb-1">FD / Debt %</label>
-                                                    <input type="number" value={portfolio.fd} onChange={e => setPortfolio({...portfolio, fd: parseInt(e.target.value)})} className="w-full p-2 border-2 border-black rounded" />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-bold uppercase mb-1">Gold %</label>
-                                                    <input type="number" value={portfolio.gold} onChange={e => setPortfolio({...portfolio, gold: parseInt(e.target.value)})} className="w-full p-2 border-2 border-black rounded" />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-bold uppercase mb-1">Crypto %</label>
-                                                    <input type="number" value={portfolio.crypto} onChange={e => setPortfolio({...portfolio, crypto: parseInt(e.target.value)})} className="w-full p-2 border-2 border-black rounded" />
-                                                </div>
-                                            </div>
-                                            <button 
-                                                onClick={handleRoast}
-                                                disabled={isRoasting}
-                                                className="w-full bg-black text-white py-3 font-bold uppercase tracking-widest hover:bg-india-chili transition-colors flex justify-center gap-2 mt-4 shadow-[4px_4px_0_0_#E32636]"
-                                            >
-                                                {isRoasting ? <Loader2 className="animate-spin" /> : <><Flame size={18} /> Roast Me (AI)</>}
-                                            </button>
-                                        </div>
-
-                                        {/* Roast Result */}
-                                        <div className="flex items-center justify-center min-h-[200px]">
-                                            {!roastResult && !isRoasting && (
-                                                <div className="text-center opacity-40">
-                                                    <Trophy size={64} className="mx-auto mb-4" />
-                                                    <p className="font-serif text-xl">Waiting for portfolio...</p>
-                                                </div>
-                                            )}
-                                            
-                                            {roastResult && (
-                                                <div className="w-full space-y-4 animate-in zoom-in-95">
-                                                    <div className="bg-white border-4 border-black p-4 shadow-pop rotate-1">
-                                                        <div className="flex justify-between items-center border-b-2 border-dashed border-gray-300 pb-2 mb-2">
-                                                            <span className="font-bold uppercase text-xs tracking-widest text-gray-500">AI Verdict</span>
-                                                            <div className="bg-india-pink text-white px-3 py-1 font-black text-lg rounded-full transform -rotate-3">
-                                                                {roastResult.score}/10
-                                                            </div>
-                                                        </div>
-                                                        <p className="font-serif text-lg text-india-blue mb-2 leading-relaxed">
-                                                            "{roastResult.roast}"
-                                                        </p>
-                                                    </div>
-                                                    
-                                                    {!hasPostedToCommunity ? (
-                                                        <button 
-                                                            onClick={handlePostToBoardroom}
-                                                            className="w-full py-2 bg-india-blue text-white font-bold uppercase text-sm border-2 border-black hover:bg-white hover:text-india-blue transition-colors flex items-center justify-center gap-2"
-                                                        >
-                                                            <Globe size={16} /> Ask Community (Anon)
-                                                        </button>
-                                                    ) : (
-                                                        <div className="text-center text-xs font-bold text-green-600 bg-green-50 p-2 border border-green-200 rounded">
-                                                            ✓ Posted to Boardroom Feed
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-6">
-                                    {/* Salary Input */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="space-y-4">
-                                            <div>
-                                                <label className="block text-xs font-bold uppercase mb-1">Job Role</label>
-                                                <input type="text" value={salaryForm.role} onChange={e => setSalaryForm({...salaryForm, role: e.target.value})} className="w-full p-2 border-2 border-black rounded" />
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-xs font-bold uppercase mb-1">Experience (Yrs)</label>
-                                                    <input type="number" value={salaryForm.exp} onChange={e => setSalaryForm({...salaryForm, exp: parseFloat(e.target.value)})} className="w-full p-2 border-2 border-black rounded" />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-bold uppercase mb-1">Current CTC (LPA)</label>
-                                                    <input type="number" value={salaryForm.ctc} onChange={e => setSalaryForm({...salaryForm, ctc: parseFloat(e.target.value)})} className="w-full p-2 border-2 border-black rounded" />
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-bold uppercase mb-1">Location</label>
-                                                <input type="text" value={salaryForm.location} onChange={e => setSalaryForm({...salaryForm, location: e.target.value})} className="w-full p-2 border-2 border-black rounded" />
-                                            </div>
-                                            <button 
-                                                onClick={handleSalaryCheck}
-                                                disabled={isCheckingSalary}
-                                                className="w-full bg-black text-white py-3 font-bold uppercase tracking-widest hover:bg-india-green transition-colors flex justify-center gap-2 mt-4 shadow-[4px_4px_0_0_#138808]"
-                                            >
-                                                {isCheckingSalary ? <Loader2 className="animate-spin" /> : <><IndianRupee size={18} /> Check Market Rate (AI)</>}
-                                            </button>
-                                        </div>
-
-                                        {/* Salary Result */}
-                                        <div className="flex items-center justify-center min-h-[200px]">
-                                            {!salaryResult && !isCheckingSalary && (
-                                                <div className="text-center opacity-40">
-                                                    <Briefcase size={64} className="mx-auto mb-4" />
-                                                    <p className="font-serif text-xl">Enter details...</p>
-                                                </div>
-                                            )}
-
-                                            {salaryResult && (
-                                                <div className="w-full space-y-4 animate-in slide-in-from-right-4">
-                                                    <div className="bg-white border-4 border-black p-4 shadow-pop">
-                                                        <p className="text-xs uppercase font-bold text-gray-500 mb-1">Market Standard</p>
-                                                        <h3 className="text-3xl font-black text-india-blue mb-2">{salaryResult.marketRange} <span className="text-sm font-medium text-black">LPA</span></h3>
-                                                        <div className={`inline-block px-3 py-1 rounded text-white font-bold uppercase text-xs ${salaryResult.verdict === 'Underpaid' ? 'bg-red-500' : 'bg-green-500'}`}>
-                                                            Verdict: {salaryResult.verdict}
-                                                        </div>
-                                                    </div>
-
-                                                    {!hasPostedToCommunity ? (
-                                                        <button 
-                                                            onClick={handlePostToBoardroom}
-                                                            className="w-full py-2 bg-india-blue text-white font-bold uppercase text-sm border-2 border-black hover:bg-white hover:text-india-blue transition-colors flex items-center justify-center gap-2"
-                                                        >
-                                                            <Globe size={16} /> Validate with Peers
-                                                        </button>
-                                                    ) : (
-                                                        <div className="text-center text-xs font-bold text-green-600 bg-green-50 p-2 border border-green-200 rounded">
-                                                            ✓ Posted to Boardroom Feed
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Community Feed / Discussion Area */}
-                    <div className="bg-white border-4 border-black shadow-[8px_8px_0_0_rgba(0,0,0,0.2)] h-[600px] flex flex-col">
-                        <div className="bg-india-yellow p-4 border-b-4 border-black flex justify-between items-center">
-                            <h3 className="font-serif text-xl flex items-center gap-2">
-                                <Users size={24} /> Boardroom Pulse
-                            </h3>
-                            <div className="flex gap-1">
-                                <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
-                                <span className="text-xs font-bold uppercase">Live</span>
-                            </div>
-                        </div>
-
-                        {!selectedPost ? (
-                            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 custom-scrollbar">
-                                {boardroomPosts.map(post => (
-                                    <div 
-                                        key={post.id} 
-                                        onClick={() => setSelectedPost(post)}
-                                        className="bg-white p-4 border-2 border-black rounded-lg hover:shadow-md cursor-pointer transition-all hover:-translate-y-1 group"
-                                    >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded text-white ${post.type === 'salary' ? 'bg-india-green' : 'bg-india-chili'}`}>
-                                                {post.type}
-                                            </span>
-                                            <span className="text-xs text-gray-400">{post.timestamp}</span>
-                                        </div>
-                                        <h4 className="font-bold text-india-blue mb-1 group-hover:underline">{post.title}</h4>
-                                        <p className="text-xs text-gray-600 line-clamp-2 mb-3">{post.details}</p>
-                                        <div className="flex items-center gap-4 text-xs text-gray-500 font-bold">
-                                            <span className="flex items-center gap-1"><MessageSquare size={12} /> {post.reviews.length} Reviews</span>
-                                            <span className="flex items-center gap-1 text-india-pink opacity-0 group-hover:opacity-100 transition-opacity">Review Now <ArrowRight size={12}/></span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="flex-1 flex flex-col h-full">
-                                {/* Post Detail Header */}
-                                <div className="bg-white p-4 border-b-2 border-black">
-                                    <button onClick={() => setSelectedPost(null)} className="text-xs font-bold uppercase text-gray-500 hover:text-black mb-2 flex items-center gap-1">
-                                        ← Back to Feed
-                                    </button>
-                                    <h3 className="font-bold text-lg leading-tight mb-2">{selectedPost.title}</h3>
-                                    <p className="text-sm text-gray-700 bg-gray-100 p-3 rounded border border-gray-300">
-                                        {selectedPost.details}
-                                    </p>
-                                </div>
-
-                                {/* Comments List */}
-                                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-                                    {selectedPost.reviews.length === 0 ? (
-                                        <p className="text-center text-gray-400 text-sm italic mt-10">Be the first to review...</p>
-                                    ) : (
-                                        selectedPost.reviews.map((review: any) => (
-                                            <div key={review.id} className="flex gap-3 animate-in slide-in-from-bottom-2">
-                                                <div className="w-8 h-8 bg-india-blue rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-black shrink-0">
-                                                    {review.author[0]}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <span className="font-bold text-xs uppercase text-gray-600">{review.author}</span>
-                                                    </div>
-                                                    <div className="bg-white p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl border border-gray-300 text-sm shadow-sm">
-                                                        {review.text}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-
-                                {/* Add Comment */}
-                                <div className="p-3 bg-white border-t-2 border-black">
-                                    <div className="flex gap-2">
-                                        <input 
-                                            type="text" 
-                                            value={peerComment}
-                                            onChange={(e) => setPeerComment(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleAddReview()}
-                                            placeholder="Review anonymously..."
-                                            className="flex-1 p-2 border-2 border-gray-300 rounded focus:border-black outline-none text-sm"
-                                        />
-                                        <button 
-                                            onClick={handleAddReview}
-                                            disabled={!peerComment.trim()}
-                                            className="bg-india-pink text-white p-2 rounded border-2 border-black hover:bg-india-blue disabled:opacity-50"
-                                        >
-                                            <Send size={16} />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                  </div>
-              </div>
-          </div>
-      );
-  }
-
-  // --- Render for Saral User (Rural) ---
   return (
     <div className="min-h-screen bg-india-cream text-gray-800 pb-20 pt-8">
        <div className="container mx-auto px-4">

@@ -7,62 +7,6 @@ const getAIClient = () => {
   return new GoogleGenAI({ apiKey });
 };
 
-// --- Central Didi Assistant ---
-
-export const chatWithDidi = async (
-  history: { role: 'user' | 'model', text: string }[],
-  message: string,
-  mode: 'saral' | 'smart',
-  image?: { data: string, mimeType: string }
-): Promise<string> => {
-  try {
-    const ai = getAIClient();
-    
-    const systemInstruction = mode === 'saral' 
-      ? "You are 'Didi', a helpful, older sister figure who explains money matters to rural Indian women. Keep answers short (max 2-3 sentences). Use simple words. Mix English with Hindi words (Hinglish) naturally. Be encouraging and warm. Never use complex financial jargon without explaining it simply."
-      : "You are 'Didi', a smart, professional financial assistant for an urban Indian woman. You are analytical, witty, and financially savvy. You can analyze taxes, stocks, and complex financial instruments. Use Indian context (Nifty, RBI, Tax Regimes). Be concise but detailed when necessary. If the user uploads an image, analyze it for financial insights.";
-
-    // Construct history for chat
-    const chatHistory = history.map(h => ({
-      role: h.role,
-      parts: [{ text: h.text }]
-    }));
-
-    const chat = ai.chats.create({
-      model: "gemini-2.5-flash",
-      config: { systemInstruction },
-      history: chatHistory
-    });
-
-    const parts: any[] = [];
-    if (image) {
-      parts.push({
-          inlineData: {
-              mimeType: image.mimeType,
-              data: image.data
-          }
-      });
-    }
-    parts.push({ text: message });
-
-    const response = await chat.sendMessage({
-        message: parts
-    });
-
-    return response.text || "I'm listening, tell me more.";
-  } catch (error) {
-    console.error("Didi Chat Error:", error);
-    return "Connection interrupted. Please try asking again.";
-  }
-};
-
-export const askDidi = async (query: string, language: string = 'en'): Promise<string> => {
-  // Wrapper for Saral mode single-turn queries
-  return chatWithDidi([], query, 'saral');
-};
-
-// --- Existing Tools ---
-
 export const explainConcept = async (concept: string): Promise<ExplanationResult> => {
   try {
     const ai = getAIClient();
@@ -238,63 +182,31 @@ export const analyzeFomo = async (query: string): Promise<FomoAnalysisResult> =>
   }
 };
 
-export const roastPortfolio = async (details: any): Promise<{ score: number, roast: string, fix: string }> => {
-    try {
-        const ai = getAIClient();
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: `Roast this investment portfolio for an Indian urban professional. Be sarcastic, witty, and brutal but financially sound. 
-            Details: Age ${details.age}, Portfolio: ${JSON.stringify(details.allocation)}. 
-            If they have too much FD, call them 'Grandpa'. If too much Crypto, call them 'Gambler'. If balanced, be grudgingly impressed.`,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        score: { type: Type.INTEGER, description: "Rating out of 10" },
-                        roast: { type: Type.STRING, description: "A short, funny, savage critique (max 2 sentences)." },
-                        fix: { type: Type.STRING, description: "One solid piece of advice to fix it." }
-                    },
-                    required: ["score", "roast", "fix"]
-                }
-            }
-        });
-        if (response.text) return JSON.parse(response.text) as any;
-        throw new Error("No roast generated");
-    } catch (error) {
-        return { score: 5, roast: "Your portfolio is so boring the AI fell asleep.", fix: "Try adding some actual data next time." };
-    }
-};
+// --- New Voice Features ---
 
-export const checkSalary = async (details: any): Promise<{ marketRange: string, script: string, verdict: string }> => {
-    try {
-        const ai = getAIClient();
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: `Benchmark this salary for an Indian professional and provide negotiation advice.
-            Role: ${details.role}, Experience: ${details.exp} years, Location: ${details.location}, Current CTC: ${details.ctc} LPA.
-            Compare with current market standards in India (Bangalore/Mumbai/Delhi standards).`,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        marketRange: { type: Type.STRING, description: "e.g., '18 - 25 LPA'" },
-                        verdict: { type: Type.STRING, description: "e.g., 'Underpaid', 'Fair', 'Great'" },
-                        script: { type: Type.STRING, description: "A professional 2-sentence script to ask for a hike." }
-                    },
-                    required: ["marketRange", "verdict", "script"]
-                }
-            }
-        });
-        if (response.text) return JSON.parse(response.text) as any;
-        throw new Error("No salary analysis generated");
-    } catch (error) {
-        return { marketRange: "Unknown", verdict: "Data Unavailable", script: "Just ask for more money confidently." };
-    }
-};
+export const askDidi = async (query: string, language: string = 'en'): Promise<string> => {
+  try {
+    const ai = getAIClient();
+    const systemPrompt = `You are 'Didi', a helpful, older sister figure who explains money matters to rural Indian women. 
+    Keep your answers extremely short (max 2-3 sentences). 
+    Use simple words. 
+    Mix English with Hindi words (Hinglish) naturally if the language is English/Hindi to make it relatable. 
+    Be encouraging and warm.`;
 
-// --- TTS ---
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: query,
+      config: {
+        systemInstruction: systemPrompt,
+      }
+    });
+
+    return response.text || "Sorry, I didn't catch that properly.";
+  } catch (error) {
+    console.error("Didi Error:", error);
+    return "Ah, network issue! Please ask again.";
+  }
+};
 
 export const generateSpeech = async (text: string): Promise<string> => {
   try {

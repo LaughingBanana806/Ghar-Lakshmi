@@ -59,8 +59,8 @@ const App: React.FC = () => {
              <>
                 <nav className="hidden md:flex gap-6 font-sans font-bold uppercase text-sm tracking-wider text-black">
                     <a href="#" onClick={navigateTo('home')} className={`hover:text-india-pink hover:underline decoration-2 underline-offset-4 ${currentView === 'home' ? 'text-india-pink underline' : ''}`}>Dashboard</a>
-                    <a href="#" onClick={navigateTo('community')} className={`hover:text-india-green hover:underline decoration-2 underline-offset-4 ${currentView === 'community' ? 'text-india-green underline' : ''}`}>Boardroom</a>
                     <a href="#" onClick={navigateTo('gyaan')} className={`hover:text-india-blue hover:underline decoration-2 underline-offset-4 ${currentView === 'gyaan' ? 'text-india-blue underline' : ''}`}>Knowledge Hub</a>
+                    <a href="#" className="hover:text-india-green hover:underline decoration-2 underline-offset-4">Portfolio</a>
                 </nav>
                 <div className="flex gap-2">
                     <div className="text-right hidden md:block leading-none">
@@ -86,7 +86,7 @@ const App: React.FC = () => {
             <SmartHome user={userProfile} onNavigateToGyaan={navigateTo('gyaan')} />
           )
         ) : currentView === 'community' ? (
-          <CommunityPage user={userProfile} />
+          <CommunityPage />
         ) : (
           <GyaanPage />
         )}
