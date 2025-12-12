@@ -12,9 +12,6 @@ const Hero: React.FC = () => {
         
         {/* Left Side: Text */}
         <div className="flex-1 text-center md:text-left pt-12 md:pt-0">
-          <div className="inline-block bg-india-chili text-white px-6 py-2 rounded-full font-sans font-bold uppercase tracking-widest mb-6 shadow-pop transform -rotate-3 border-2 border-white">
-            ★ Shubh Aarambh for Your Wallet ★
-          </div>
           
           <h1 className="text-6xl md:text-8xl font-serif text-india-blue leading-[1.1] drop-shadow-lg mb-6 relative">
             Master the <br/>

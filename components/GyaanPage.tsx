@@ -1,107 +1,133 @@
 import React, { useState } from 'react';
-import { TrendingUp, ShieldCheck, PieChart, Coins, Calculator, Zap, LineChart, Landmark, Briefcase, Scale, Gem, Umbrella, Sparkles, X, Video, Loader2, Clapperboard } from 'lucide-react';
+import { TrendingUp, ShieldCheck, PieChart, Coins, Calculator, Zap, LineChart, Landmark, Briefcase, Scale, Gem, Umbrella, Sparkles, X, Video, Loader2, Clapperboard, Search } from 'lucide-react';
 import { ExplanationResult } from '../types';
 import { DecorativeCorner, LotusIcon, Sunburst } from './GeometricDecorations';
 import { generateConceptVideo } from '../services/videoService';
 
-const concepts = [
+const conceptCategories = [
   {
-    title: "Inflation",
-    subtitle: "The Price Rise Monster",
-    icon: <TrendingUp className="w-8 h-8" />,
-    desc: "Why your Chai costs ₹10 today but was ₹2 yesterday.",
-    bg: "bg-india-pink",
-    border: "border-india-yellow"
+    title: "Investing Basics",
+    subtitle: "Nivesh ki ABC",
+    concepts: [
+      {
+        title: "SIP",
+        subtitle: "Small Drops, Big Ocean",
+        icon: <Calculator className="w-8 h-8" />,
+        desc: "Invest small amounts regularly. Consistency is king! Discipline creates wealth.",
+        bg: "bg-india-purple",
+        border: "border-india-green"
+      },
+      {
+        title: "Compound Interest",
+        subtitle: "The 8th Wonder",
+        icon: <Zap className="w-8 h-8" />,
+        desc: "Money making more money. The magic of time that Einstein praised.",
+        bg: "bg-india-chili",
+        border: "border-india-yellow"
+      },
+      {
+        title: "Diversification",
+        subtitle: "Not All Eggs in One Basket",
+        icon: <PieChart className="w-8 h-8" />,
+        desc: "Like a Thali meal - a little bit of everything is best for health.",
+        bg: "bg-india-blue",
+        border: "border-india-marigold"
+      },
+      {
+        title: "Dividends",
+        subtitle: "Bonus Pay",
+        icon: <Coins className="w-8 h-8" />,
+        desc: "When the company shares its laddu with you.",
+        bg: "bg-india-marigold",
+        border: "border-india-blue"
+      },
+    ]
   },
   {
-    title: "Diversification",
-    subtitle: "Not All Eggs in One Basket",
-    icon: <PieChart className="w-8 h-8" />,
-    desc: "Like a Thali meal - a little bit of everything is best for health.",
-    bg: "bg-india-blue",
-    border: "border-india-marigold"
+    title: "Market Concepts",
+    subtitle: "Bazaar ki Baatein",
+    concepts: [
+       {
+        title: "Bull & Bear",
+        subtitle: "Tezi vs Mandi",
+        icon: <LineChart className="w-8 h-8" />,
+        desc: "Bull runs up (profit), Bear swipes down (loss). Know your jungle.",
+        bg: "bg-india-blue",
+        border: "border-india-pink"
+      },
+      {
+        title: "IPO",
+        subtitle: "First Show Ticket",
+        icon: <Briefcase className="w-8 h-8" />,
+        desc: "Buying shares when a company first enters the market. High risk, high drama.",
+        bg: "bg-india-pink",
+        border: "border-white"
+      },
+    ]
   },
   {
-    title: "Emergency Fund",
-    subtitle: "Rainy Day Savings",
-    icon: <ShieldCheck className="w-8 h-8" />,
-    desc: "Money kept under the mattress (bank) for when trouble knocks.",
-    bg: "bg-india-green",
-    border: "border-india-cream"
+    title: "Savings & Safety",
+    subtitle: "Bachat aur Suraksha",
+    concepts: [
+      {
+        title: "Emergency Fund",
+        subtitle: "Rainy Day Savings",
+        icon: <ShieldCheck className="w-8 h-8" />,
+        desc: "Money kept under the mattress (bank) for when trouble knocks.",
+        bg: "bg-india-green",
+        border: "border-india-cream"
+      },
+      {
+        title: "Fixed Deposit",
+        subtitle: "Safe & Sound",
+        icon: <Landmark className="w-8 h-8" />,
+        desc: "Low risk, steady return. The classic Indian choice for peace of mind.",
+        bg: "bg-india-green",
+        border: "border-india-marigold"
+      },
+      {
+        title: "Insurance",
+        subtitle: "Safety Chhatri",
+        icon: <Umbrella className="w-8 h-8" />,
+        desc: "Protection for life and health. Essential umbrella for rainy days.",
+        bg: "bg-india-blue",
+        border: "border-india-green"
+      },
+      {
+        title: "Gold",
+        subtitle: "Sona Kitna Sona Hai",
+        icon: <Gem className="w-8 h-8" />,
+        desc: "The evergreen hedge against bad times. A tradition that pays off.",
+        bg: "bg-india-yellow",
+        border: "border-black"
+      },
+    ]
   },
   {
-    title: "Dividends",
-    subtitle: "Bonus Pay",
-    icon: <Coins className="w-8 h-8" />,
-    desc: "When the company shares its laddu with you.",
-    bg: "bg-india-marigold",
-    border: "border-india-blue"
-  },
-  {
-    title: "SIP",
-    subtitle: "Small Drops, Big Ocean",
-    icon: <Calculator className="w-8 h-8" />,
-    desc: "Invest small amounts regularly. Consistency is king! Discipline creates wealth.",
-    bg: "bg-india-purple",
-    border: "border-india-green"
-  },
-  {
-    title: "Compound Interest",
-    subtitle: "The 8th Wonder",
-    icon: <Zap className="w-8 h-8" />,
-    desc: "Money making more money. The magic of time that Einstein praised.",
-    bg: "bg-india-chili",
-    border: "border-india-yellow"
-  },
-  {
-    title: "Bull & Bear",
-    subtitle: "Tezi vs Mandi",
-    icon: <LineChart className="w-8 h-8" />,
-    desc: "Bull runs up (profit), Bear swipes down (loss). Know your jungle.",
-    bg: "bg-india-blue",
-    border: "border-india-pink"
-  },
-  {
-    title: "Fixed Deposit",
-    subtitle: "Safe & Sound",
-    icon: <Landmark className="w-8 h-8" />,
-    desc: "Low risk, steady return. The classic Indian choice for peace of mind.",
-    bg: "bg-india-green",
-    border: "border-india-marigold"
-  },
-  {
-    title: "IPO",
-    subtitle: "First Show Ticket",
-    icon: <Briefcase className="w-8 h-8" />,
-    desc: "Buying shares when a company first enters the market. High risk, high drama.",
-    bg: "bg-india-pink",
-    border: "border-white"
-  },
-  {
-    title: "Credit Score",
-    subtitle: "Reputation Meter",
-    icon: <Scale className="w-8 h-8" />,
-    desc: "Keep it high to get loans easily. Don't be a Defaulter!",
-    bg: "bg-india-marigold",
-    border: "border-india-purple"
-  },
-  {
-    title: "Gold",
-    subtitle: "Sona Kitna Sona Hai",
-    icon: <Gem className="w-8 h-8" />,
-    desc: "The evergreen hedge against bad times. A tradition that pays off.",
-    bg: "bg-india-yellow",
-    border: "border-black"
-  },
-  {
-    title: "Insurance",
-    subtitle: "Safety Chhatri",
-    icon: <Umbrella className="w-8 h-8" />,
-    desc: "Protection for life and health. Essential umbrella for rainy days.",
-    bg: "bg-india-blue",
-    border: "border-india-green"
+    title: "Essential Concepts",
+    subtitle: "Zaroori Gyaan",
+    concepts: [
+      {
+        title: "Inflation",
+        subtitle: "The Price Rise Monster",
+        icon: <TrendingUp className="w-8 h-8" />,
+        desc: "Why your Chai costs ₹10 today but was ₹2 yesterday.",
+        bg: "bg-india-pink",
+        border: "border-india-yellow"
+      },
+      {
+        title: "Credit Score",
+        subtitle: "Reputation Meter",
+        icon: <Scale className="w-8 h-8" />,
+        desc: "Keep it high to get loans easily. Don't be a Defaulter!",
+        bg: "bg-india-marigold",
+        border: "border-india-purple"
+      }
+    ]
   }
 ];
+
+const allConcepts = conceptCategories.flatMap(category => category.concepts);
 
 const staticExplanations: Record<string, ExplanationResult> = {
   "Inflation": {
@@ -178,9 +204,62 @@ const staticExplanations: Record<string, ExplanationResult> = {
   }
 };
 
+const ConceptCard = ({ item, idx, onExplain }: any) => (
+  <div 
+    className={`group relative ${item.bg} p-2 shadow-pop hover:shadow-pop-hover hover:-translate-y-1 transition-all duration-300 opacity-0 animate-pop-in`}
+    style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'forwards' }}
+    onClick={() => onExplain(item.title)}
+  >
+    <DecorativeCorner className="absolute -top-2 -left-2 w-6 h-6 z-20 border-white" />
+    <DecorativeCorner className="absolute -bottom-2 -right-2 w-6 h-6 z-20 border-white rotate-180" />
+
+    <div className={`h-full border-4 ${item.border} p-6 flex flex-col items-center text-center relative bg-white/10 backdrop-blur-sm cursor-pointer`}>
+      <div className="absolute top-2 left-2 w-2 h-2 bg-white rounded-full"></div>
+      <div className="absolute top-2 right-2 w-2 h-2 bg-white rounded-full"></div>
+      <div className="absolute bottom-2 left-2 w-2 h-2 bg-white rounded-full"></div>
+      <div className="absolute bottom-2 right-2 w-2 h-2 bg-white rounded-full"></div>
+
+      <div className="w-20 h-20 bg-white rounded-full border-4 border-black flex items-center justify-center text-black mb-4 shadow-md group-hover:rotate-12 transition-transform duration-300">
+        {item.icon}
+      </div>
+      
+      <h3 className="text-2xl font-serif font-bold text-white uppercase mb-1 drop-shadow-md leading-none">
+        {item.title}
+      </h3>
+      <span className="text-xs font-sans font-bold text-black bg-white/80 px-2 py-1 rounded mb-4 inline-block mt-2 border border-black shadow-[2px_2px_0_0_rgba(0,0,0,0.5)]">
+          {item.subtitle}
+      </span>
+      
+      <p className="font-sans text-white text-sm font-medium leading-relaxed drop-shadow-sm mb-4">
+        {item.desc}
+      </p>
+
+      <div className="mt-auto w-full">
+          <button
+              onClick={(e) => {
+                  e.stopPropagation();
+                  onExplain(item.title);
+              }}
+              className="w-full bg-black text-india-yellow font-bold uppercase text-xs px-4 py-3 rounded shadow-[4px_4px_0_0_rgba(255,255,255,0.4)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2 border-2 border-india-yellow group-hover:bg-white group-hover:text-black group-hover:border-black"
+          >
+              <Sparkles size={14} className="animate-pulse" />
+              Samjhao Guru-ji!
+          </button>
+          
+          <div className="flex justify-between items-end opacity-60 mt-4">
+              <span className="text-[10px] uppercase tracking-widest text-white">Series A</span>
+              <span className="text-[10px] uppercase tracking-widest text-white">#{idx+1 < 10 ? `0${idx+1}` : idx+1}</span>
+          </div>
+      </div>
+    </div>
+  </div>
+);
+
+
 const GyaanPage: React.FC = () => {
   const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
   const [explanation, setExplanation] = useState<ExplanationResult | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Video Generation State
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -189,7 +268,6 @@ const GyaanPage: React.FC = () => {
   const handleExplain = (conceptTitle: string) => {
     setSelectedConcept(conceptTitle);
     
-    // Fetch from static map
     const result = staticExplanations[conceptTitle] || {
         concept: conceptTitle,
         simpleDefinition: "Concept details coming soon!",
@@ -211,7 +289,6 @@ const GyaanPage: React.FC = () => {
     if (!explanation) return;
     
     try {
-        // Veo requires a paid API key selected by the user
         if ((window as any).aistudio && typeof (window as any).aistudio.hasSelectedApiKey === 'function') {
             const hasKey = await (window as any).aistudio.hasSelectedApiKey();
             if (!hasKey) {
@@ -230,9 +307,18 @@ const GyaanPage: React.FC = () => {
     }
   };
 
+  const isSearching = searchQuery.trim() !== '';
+  
+  const searchFilteredConcepts = isSearching ? allConcepts.filter(concept =>
+    concept.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    concept.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    concept.subtitle.toLowerCase().includes(searchQuery.toLowerCase())
+  ) : [];
+
+  let conceptIndex = 0;
+
   return (
     <div className="min-h-screen pt-0 pb-24 relative overflow-hidden bg-vintage-paper">
-      {/* Background Decor - Wrapped in fixed inset to prevent layout shift */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <Sunburst className="absolute top-0 left-0 w-[800px] h-[800px] -translate-x-1/2 -translate-y-1/2 text-india-marigold opacity-10" />
         <div className="absolute right-0 top-1/4 w-32 h-full bg-pattern-checkers opacity-5"></div>
@@ -240,7 +326,6 @@ const GyaanPage: React.FC = () => {
 
       <div className="container mx-auto px-4 md:px-6 relative z-10 pt-8">
         
-        {/* Page Header */}
         <div className="text-center mb-8 relative">
            <div className="absolute top-1/2 left-0 w-full h-1 bg-india-black opacity-20 -z-10"></div>
            <div className="inline-block bg-india-yellow px-8 py-4 border-4 border-black shadow-pop rotate-1">
@@ -255,61 +340,57 @@ const GyaanPage: React.FC = () => {
            </div>
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {concepts.map((item, idx) => (
-            <div 
-              key={idx} 
-              className={`group relative ${item.bg} p-2 shadow-pop hover:shadow-pop-hover hover:-translate-y-1 transition-all duration-300 opacity-0 animate-pop-in`}
-              style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'forwards' }}
-              onClick={() => handleExplain(item.title)}
-            >
-              <DecorativeCorner className="absolute -top-2 -left-2 w-6 h-6 z-20 border-white" />
-              <DecorativeCorner className="absolute -bottom-2 -right-2 w-6 h-6 z-20 border-white rotate-180" />
-
-              <div className={`h-full border-4 ${item.border} p-6 flex flex-col items-center text-center relative bg-white/10 backdrop-blur-sm cursor-pointer`}>
-                {/* Vintage Corner Accents */}
-                <div className="absolute top-2 left-2 w-2 h-2 bg-white rounded-full"></div>
-                <div className="absolute top-2 right-2 w-2 h-2 bg-white rounded-full"></div>
-                <div className="absolute bottom-2 left-2 w-2 h-2 bg-white rounded-full"></div>
-                <div className="absolute bottom-2 right-2 w-2 h-2 bg-white rounded-full"></div>
-
-                <div className="w-20 h-20 bg-white rounded-full border-4 border-black flex items-center justify-center text-black mb-4 shadow-md group-hover:rotate-12 transition-transform duration-300">
-                  {item.icon}
-                </div>
-                
-                <h3 className="text-2xl font-serif font-bold text-white uppercase mb-1 drop-shadow-md leading-none">
-                  {item.title}
-                </h3>
-                <span className="text-xs font-sans font-bold text-black bg-white/80 px-2 py-1 rounded mb-4 inline-block mt-2 border border-black shadow-[2px_2px_0_0_rgba(0,0,0,0.5)]">
-                    {item.subtitle}
-                </span>
-                
-                <p className="font-sans text-white text-sm font-medium leading-relaxed drop-shadow-sm mb-4">
-                  {item.desc}
-                </p>
-
-                <div className="mt-auto w-full">
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleExplain(item.title);
-                        }}
-                        className="w-full bg-black text-india-yellow font-bold uppercase text-xs px-4 py-3 rounded shadow-[4px_4px_0_0_rgba(255,255,255,0.4)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all flex items-center justify-center gap-2 border-2 border-india-yellow group-hover:bg-white group-hover:text-black group-hover:border-black"
-                    >
-                        <Sparkles size={14} className="animate-pulse" />
-                        Samjhao Guru-ji!
-                    </button>
-                    
-                    <div className="flex justify-between items-end opacity-60 mt-4">
-                        <span className="text-[10px] uppercase tracking-widest text-white">Series A</span>
-                        <span className="text-[10px] uppercase tracking-widest text-white">#{idx+1 < 10 ? `0${idx+1}` : idx+1}</span>
-                    </div>
-                </div>
-              </div>
+        <div className="mb-12 max-w-2xl mx-auto">
+            <div className="relative">
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search concepts like 'SIP', 'Tax', 'Gold'..."
+                    className="w-full text-lg font-sans p-4 pl-12 border-4 border-black rounded-full shadow-[4px_4px_0_0_black] focus:outline-none focus:ring-4 focus:ring-india-pink transition-all"
+                />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
             </div>
-          ))}
         </div>
+
+        {/* Content: Conditional rendering for search vs categorized view */}
+        {isSearching ? (
+          <>
+            {searchFilteredConcepts.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                {searchFilteredConcepts.map((item, idx) => (
+                  <ConceptCard key={item.title} item={item} idx={idx} onExplain={handleExplain} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16 animate-in fade-in">
+                  <div className="inline-block bg-white p-8 rounded-xl border-4 border-dashed border-india-chili rotate-[-2deg] shadow-lg">
+                      <h3 className="text-3xl font-serif text-india-chili mb-2">Aiyyo!</h3>
+                      <p className="font-sans text-gray-700">No wisdom found for "{searchQuery}".<br/>Try another word!</p>
+                  </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="space-y-16">
+            {conceptCategories.map((category) => (
+              <section key={category.title}>
+                <div className="text-center mb-8">
+                  <h2 className="text-4xl font-serif text-india-purple mb-1 drop-shadow-sm">{category.title}</h2>
+                  <p className="font-sans font-bold text-india-green bg-india-green/10 inline-block px-3 py-1 rounded-full text-sm">{category.subtitle}</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                  {category.concepts.map((item) => {
+                    const card = <ConceptCard key={item.title} item={item} idx={conceptIndex} onExplain={handleExplain} />;
+                    conceptIndex++;
+                    return card;
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
+
 
         {/* Modal Overlay */}
         {selectedConcept && (
@@ -325,7 +406,6 @@ const GyaanPage: React.FC = () => {
                     {explanation ? (
                         <div className="bg-india-yellow border-8 border-black p-2 shadow-[10px_10px_0_0_#E11D74] animate-in zoom-in-95 duration-300">
                             <div className="bg-white border-4 border-black p-6 md:p-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
-                                {/* Header */}
                                 <div className="flex justify-between items-start pb-4 mb-4">
                                     <div>
                                         <span className="bg-india-pink text-white text-xs font-bold px-2 py-1 uppercase tracking-widest rounded-sm">Concept</span>
@@ -335,8 +415,6 @@ const GyaanPage: React.FC = () => {
                                         ₹
                                     </div>
                                 </div>
-
-                                {/* Definition */}
                                 <div className="mb-6">
                                     <h4 className="font-sans font-bold text-india-blue uppercase tracking-wider mb-2 flex items-center gap-2 text-sm">
                                         <span className="w-2 h-2 bg-india-blue rounded-full"></span> 
@@ -344,8 +422,6 @@ const GyaanPage: React.FC = () => {
                                     </h4>
                                     <p className="text-lg font-medium leading-relaxed font-sans text-gray-800">{explanation.simpleDefinition}</p>
                                 </div>
-
-                                {/* Analogy */}
                                 <div className="bg-india-cream p-5 rounded-xl border-2 border-india-marigold mb-6 relative overflow-hidden">
                                     <div className="absolute -right-2 -top-2 text-india-marigold opacity-20">
                                         <LotusIcon className="w-20 h-20" />
@@ -353,20 +429,15 @@ const GyaanPage: React.FC = () => {
                                     <h4 className="font-sans font-bold text-india-chili uppercase tracking-wider mb-2 text-sm">Desi Style Example</h4>
                                     <p className="text-xl italic font-serif text-gray-900 relative z-10 leading-relaxed">"{explanation.analogy}"</p>
                                 </div>
-
-                                {/* Takeaway */}
                                 <div className="bg-india-blue text-white p-5 text-center border-4 border-double border-white shadow-md transform -rotate-1">
                                     <h4 className="font-bold text-xs uppercase opacity-75 mb-2">Guru Mantra</h4>
                                     <p className="text-xl md:text-2xl font-serif">"{explanation.keyTakeaway}"</p>
                                 </div>
-
-                                {/* Video Generation Section */}
                                 <div className="mt-8 pt-6 border-t-4 border-dashed border-gray-300">
                                     <div className="flex items-center gap-3 mb-4">
                                         <Clapperboard className="w-6 h-6 text-india-purple" />
                                         <h4 className="font-sans font-bold text-india-purple uppercase tracking-wider">Guru-ji's Cinema</h4>
                                     </div>
-
                                     {!videoUrl && !isVideoLoading && (
                                         <div className="bg-india-cream p-6 rounded-xl border-2 border-india-purple text-center relative overflow-hidden">
                                             <div className="absolute inset-0 bg-pattern-dots opacity-10"></div>
@@ -383,7 +454,6 @@ const GyaanPage: React.FC = () => {
                                             </p>
                                         </div>
                                     )}
-
                                     {isVideoLoading && (
                                         <div className="bg-india-cream p-8 rounded-xl border-2 border-india-purple text-center flex flex-col items-center justify-center min-h-[200px]">
                                             <Loader2 className="w-10 h-10 text-india-pink animate-spin mb-4" />
@@ -391,7 +461,6 @@ const GyaanPage: React.FC = () => {
                                             <p className="font-sans text-sm text-gray-600 mt-2">Generating your financial blockbuster. This may take a minute.</p>
                                         </div>
                                     )}
-
                                     {videoUrl && (
                                         <div className="bg-black p-2 rounded-xl border-4 border-india-marigold shadow-pop">
                                             <video 
@@ -420,7 +489,6 @@ const GyaanPage: React.FC = () => {
             </div>
         )}
 
-        {/* Bottom Message */}
         <div className="mt-16 text-center">
             <p className="font-serif text-2xl text-india-chili bg-india-cream inline-block px-6 py-2 border-2 border-dashed border-india-chili rotate-[-1deg]">
                 ★ More Wisdom Added Every Full Moon! ★
