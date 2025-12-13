@@ -1,9 +1,8 @@
-import React, { useState, useRef } from 'react';
-import Hero from './Hero';
+import React, { useState, useRef, useEffect } from 'react';
 import InfoCards from './InfoCards';
 import { FomoAnalysisResult, UserProfile, LegalVaultItem } from '../types';
-import { LineChart, TrendingUp, PieChart, Briefcase, Calculator, X, CheckCircle2, AlertCircle, ArrowRight, Upload, Loader2, Plane, Baby, GraduationCap, Coffee, AlertTriangle, Flame, ShieldAlert, Thermometer, SearchCheck, Mic, Lock, FileText, UserCheck, ShieldCheck, Trash2, Plus, Palmtree, Stethoscope, Car, Wine, Sparkles, Coins, CreditCard, Banknote, Percent, TrendingDown } from 'lucide-react';
-import { analyzeSalarySlip, analyzeFomo } from '../services/geminiService';
+import { LineChart, TrendingUp, PieChart, Briefcase, Calculator, X, CheckCircle2, AlertCircle, ArrowRight, Upload, Loader2, Plane, Baby, GraduationCap, Coffee, AlertTriangle, Flame, ShieldAlert, Thermometer, SearchCheck, Mic, Lock, FileText, UserCheck, ShieldCheck, Trash2, Plus, Palmtree, Stethoscope, Car, Wine, Sparkles, Coins, CreditCard, Banknote, Percent, TrendingDown, MessageCircle, Send, Paperclip, Bot, PiggyBank } from 'lucide-react';
+import { analyzeSalarySlip, analyzeFomo, chatWithDidi } from '../services/geminiService';
 
 interface SmartHomeProps {
   user: UserProfile;
@@ -78,15 +77,62 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
   const [funIncome, setFunIncome] = useState('');
   const [funFixed, setFunFixed] = useState('');
   const [funInvest, setFunInvest] = useState('');
-  
-  // Nominee Audit State (Mock Data)
-  const [nomineeAudit, setNomineeAudit] = useState([
-      { id: '1', account: 'Salary Account (HDFC)', nominee: 'Husband', status: 'warning' },
-      { id: '2', account: 'Term Insurance', nominee: 'Mother', status: 'safe' },
-      { id: '3', account: 'Mutual Funds (Groww)', nominee: 'Husband', status: 'warning' },
-      { id: '4', account: 'EPF / PF', nominee: 'Not Updated', status: 'danger' },
-  ]);
 
+  // --- DIDI CHAT STATE ---
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<{role: 'user' | 'model', text: string}[]>([
+      { role: 'model', text: "Hello Boss Lady! I'm Didi. How can I help you dominate your finances today? You can ask me to analyze bills, check stock tips, or explain taxes." }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [chatImage, setChatImage] = useState<{data: string, mimeType: string} | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (chatEndRef.current) {
+        chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatMessages, isChatOpen]);
+
+  // --- DIDI CHAT HANDLERS ---
+  const handleChatSubmit = async (e?: React.FormEvent) => {
+    if(e) e.preventDefault();
+    if((!chatInput.trim() && !chatImage) || isChatLoading) return;
+
+    const newMessage = chatInput;
+    const currentImage = chatImage;
+    
+    // Optimistic Update
+    setChatMessages(prev => [...prev, { role: 'user', text: newMessage + (currentImage ? ' [Image Attached]' : '') }]);
+    setChatInput('');
+    setChatImage(null);
+    setIsChatLoading(true);
+
+    try {
+        const responseText = await chatWithDidi(chatMessages, newMessage, 'smart', currentImage || undefined);
+        setChatMessages(prev => [...prev, { role: 'model', text: responseText }]);
+    } catch (error) {
+        setChatMessages(prev => [...prev, { role: 'model', text: "Sorry, I ran into a technical glitch. Can you ask again?" }]);
+    } finally {
+        setIsChatLoading(false);
+    }
+  };
+
+  const handleChatImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+              const base64String = reader.result as string;
+              const base64Data = base64String.split(',')[1];
+              const mimeType = base64String.split(';')[0].split(':')[1];
+              setChatImage({ data: base64Data, mimeType });
+          };
+          reader.readAsDataURL(file);
+      }
+  };
+
+  // ... (Existing Calculator Functions)
   const GOAL_TEMPLATES: any = {
       travel: { label: 'Euro Trip', icon: <Plane size={20}/>, inflation: 0.10, color: 'bg-blue-100 text-blue-600 border-blue-300' },
       wedding: { label: 'Designer Wedding', icon: <Sparkles size={20}/>, inflation: 0.12, color: 'bg-pink-100 text-pink-600 border-pink-300' },
@@ -97,18 +143,11 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
   const calculateGoalMetrics = () => {
       const currentCost = parseInt(goalCost) || 0;
       if (currentCost === 0) return { futureCost: 0, sip: 0 };
-      
       const inflation = GOAL_TEMPLATES[selectedGoal].inflation;
       const futureCost = Math.round(currentCost * Math.pow(1 + inflation, goalYears));
-      
-      // SIP Formula: FutureValue = P * [ (1+i)^n - 1 ] * (1+i) / i
-      // We need P. P = FutureValue / ( ... )
-      const r = 0.12 / 12; // 12% annual return assumption for investments
+      const r = 0.12 / 12; 
       const n = goalYears * 12;
-      
-      // Simple recurring deposit formula approximation for target corpus
       const sip = Math.round(futureCost / ((Math.pow(1 + r, n) - 1) / r * (1 + r)));
-      
       return { futureCost, sip, inflationPercent: inflation * 100 };
   };
 
@@ -127,13 +166,7 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
       const hAmt = parseInt(loanDetails.homeLoanAmt) || 0;
       const hRate = parseFloat(loanDetails.homeLoanRate) || 0;
       const surplus = parseInt(loanDetails.surplusAmount) || 0;
-
       if(surplus === 0) return null;
-
-      // Avalanche Method: High interest first
-      // Logic: If Personal Loan Rate > Home Loan Rate, pay Personal Loan.
-      // Liquidity Rule: Keep 20% of surplus for emergency if not specifically allocated? 
-      // For simplicity, we assume 'surplus' is AFTER setting aside emergency fund.
       
       let recommendation = '';
       let savedInterest = 0;
@@ -142,7 +175,6 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
       if (pRate > hRate && pAmt > 0) {
           targetLoan = 'Personal Loan';
           recommendation = `Pay off the Personal Loan first! It costs you ${pRate}% vs ${hRate}%.`;
-          // Approximate annual saving on the surplus amount
           savedInterest = Math.round(surplus * (pRate - hRate) / 100); 
       } else if (hRate > pRate && hAmt > 0) {
           targetLoan = 'Home Loan';
@@ -165,10 +197,8 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
         const reader = new FileReader();
         reader.onloadend = async () => {
             const base64String = reader.result as string;
-            // Remove data URL prefix for API
             const base64Data = base64String.split(',')[1];
             const mimeType = base64String.split(';')[0].split(':')[1];
-
             const result = await analyzeSalarySlip(base64Data, mimeType);
             if (result) {
                 setSalaryDetails(prev => ({
@@ -194,29 +224,22 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
       alert("Voice input is not supported in this browser.");
       return;
     }
-
     const recognition = new SpeechRecognition();
     recognition.lang = user.language === 'hi' ? 'hi-IN' : 'en-IN';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
-
     setIsFomoListening(true);
-
     recognition.onresult = (event: any) => {
       const text = event.results[0][0].transcript;
       setFomoQuery(text);
       setIsFomoListening(false);
     };
-
     recognition.onerror = (event: any) => {
-      console.error("FOMO speech error", event.error);
       setIsFomoListening(false);
     };
-
     recognition.onend = () => {
       setIsFomoListening(false);
     };
-
     recognition.start();
     fomoRecognitionRef.current = recognition;
   };
@@ -242,7 +265,6 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
     }
   };
 
-  // Legal Shield Handlers
   const handleVaultUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
@@ -271,36 +293,36 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
   };
 
   const calculateTaxes = () => {
-      // 1. New Regime (FY 2024-25)
-      // Standard Deduction increased to 75k
+      // New Regime FY 24-25 (Assessment Year 25-26)
       const newRegimeStdDed = 75000;
       const taxableIncomeNew = Math.max(0, salaryDetails.gross - newRegimeStdDed);
-      
       let taxNew = 0;
       if (taxableIncomeNew > 300000) {
-           // Slabs: 0-3L: 0, 3-7L: 5%, 7-10L: 10%, 10-12L: 15%, 12-15L: 20%, >15L: 30%
-           // Simplified calculation
            if (taxableIncomeNew <= 700000) {
+               // 3-7L: 5%
                taxNew = (taxableIncomeNew - 300000) * 0.05;
-               // Rebate 87A
+               // Rebate u/s 87A makes it 0 if income <= 7L
                if (taxableIncomeNew <= 700000) taxNew = 0; 
            } else {
-               // 3-7L
-               taxNew += 400000 * 0.05; // 20000
-               
+               // 3-7L: 4L * 5% = 20000
+               taxNew += 400000 * 0.05; 
                if (taxableIncomeNew > 700000) {
+                   // 7-10L: 10%
                    const slab3 = Math.min(taxableIncomeNew, 1000000) - 700000;
                    if (slab3 > 0) taxNew += slab3 * 0.10;
                }
                if (taxableIncomeNew > 1000000) {
+                   // 10-12L: 15%
                    const slab4 = Math.min(taxableIncomeNew, 1200000) - 1000000;
                    if (slab4 > 0) taxNew += slab4 * 0.15;
                }
                if (taxableIncomeNew > 1200000) {
+                   // 12-15L: 20%
                    const slab5 = Math.min(taxableIncomeNew, 1500000) - 1200000;
                    if (slab5 > 0) taxNew += slab5 * 0.20;
                }
                if (taxableIncomeNew > 1500000) {
+                   // >15L: 30%
                    const slab6 = taxableIncomeNew - 1500000;
                    if (slab6 > 0) taxNew += slab6 * 0.30;
                }
@@ -309,38 +331,32 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
       const cessNew = taxNew * 0.04;
       const totalTaxNew = taxNew + cessNew;
 
-      // 2. Old Regime
+      // Old Regime
       const oldRegimeStdDed = 50000;
-      
-      // HRA Exemption
-      // Min of: HRA Received, Rent Paid - 10% of Basic, 50% of Basic (assuming Metro)
       const hraExemption = Math.max(0, Math.min(
           salaryDetails.hraReceived,
           salaryDetails.rentPaid - (0.10 * salaryDetails.basic),
-          0.50 * salaryDetails.basic
+          0.50 * salaryDetails.basic // Assuming Metro 50% for simplicity, or we can toggle
       ));
-
       const totalDeductions = 
-          Math.min(150000, salaryDetails.investments80C) + // 80C Cap
-          Math.min(50000, salaryDetails.investmentsNPS) + // 80CCD(1B)
-          Math.min(25000, salaryDetails.healthInsurance); // 80D (Self)
-
+          Math.min(150000, salaryDetails.investments80C) + 
+          Math.min(50000, salaryDetails.investmentsNPS) + 
+          Math.min(25000, salaryDetails.healthInsurance); 
       const taxableIncomeOld = Math.max(0, salaryDetails.gross - oldRegimeStdDed - hraExemption - totalDeductions);
-
       let taxOld = 0;
       if (taxableIncomeOld > 250000) {
-          // Slabs: 0-2.5L: 0, 2.5-5L: 5%, 5-10L: 20%, >10L: 30%
           if (taxableIncomeOld <= 500000) {
               taxOld = (taxableIncomeOld - 250000) * 0.05;
               if (taxableIncomeOld <= 500000) taxOld = 0; // Rebate
           } else {
-              taxOld += 250000 * 0.05; // 12500
-              
+              taxOld += 250000 * 0.05; 
               if (taxableIncomeOld > 500000) {
+                  // 5-10L: 20%
                   const slab3 = Math.min(taxableIncomeOld, 1000000) - 500000;
                   if (slab3 > 0) taxOld += slab3 * 0.20;
               }
               if (taxableIncomeOld > 1000000) {
+                  // >10L: 30%
                   const slab4 = taxableIncomeOld - 1000000;
                   if (slab4 > 0) taxOld += slab4 * 0.30;
               }
@@ -348,7 +364,6 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
       }
       const cessOld = taxOld * 0.04;
       const totalTaxOld = taxOld + cessOld;
-
       return {
           new: Math.round(totalTaxNew),
           old: Math.round(totalTaxOld),
@@ -364,33 +379,22 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
     const today = new Date();
     const start = new Date(runwayData.startDate);
     const monthsUntilStart = Math.max(0, (start.getFullYear() - today.getFullYear()) * 12 + (start.getMonth() - today.getMonth()));
-    
-    // Inflation Adjustment (7% p.a.)
     const inflationFactor = Math.pow(1.07, monthsUntilStart / 12);
     let adjustedMonthlyExpense = Math.round(runwayData.monthlyExpenses * inflationFactor);
-
     let extraCosts = 0;
     let extraCostsDescription = '';
-
     if (runwayData.breakType === 'maternity') {
-        // Medical Inflation 10% on base 1.5L
         const medicalCost = Math.round(150000 * Math.pow(1.10, monthsUntilStart / 12));
         extraCosts += medicalCost;
-        // Baby expenses increase monthly burn by 20%
         adjustedMonthlyExpense = Math.round(adjustedMonthlyExpense * 1.20);
         extraCostsDescription = `Includes ₹${(medicalCost/1000).toFixed(0)}k for medical & baby setup.`;
     } else if (runwayData.breakType === 'study') {
-        // Course Fees approx 2L
         extraCosts += 200000;
         extraCostsDescription = `Includes ₹2L for course fees/laptop.`;
     }
-
     const totalCost = (adjustedMonthlyExpense * runwayData.breakDurationMonths) + extraCosts;
     const shortfall = Math.max(0, totalCost - runwayData.existingSavings);
-    
-    // Available runway with current savings
     const availableRunway = Math.max(0, (runwayData.existingSavings - extraCosts) / adjustedMonthlyExpense);
-
     return {
         totalCost,
         shortfall,
@@ -437,16 +441,12 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
               </div>
           </div>
       </div>
-
-      <Hero />
       
       <div className="py-8 flex items-center justify-center bg-india-pink text-white overflow-hidden">
           <div className="whitespace-nowrap animate-marquee font-serif text-4xl uppercase tracking-widest opacity-90">
              ★ Savings ★ Investment ★ Growth ★ Future ★ Wealth ★ Savings ★ Investment ★ Growth ★ Future ★ Wealth ★
           </div>
       </div>
-
-      <InfoCards onViewMore={onNavigateToGyaan} />
 
       {/* TOOLS SECTION */}
       <section className="py-16 bg-india-cream border-t-8 border-india-marigold relative overflow-hidden">
@@ -458,7 +458,6 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
                 {/* Tax Decoder Card */}
                 <div className="bg-india-green text-white rounded-2xl p-8 border-4 border-black shadow-pop hover:-translate-y-2 transition-transform relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform"></div>
                     <div className="relative z-10">
                         <div className="w-16 h-16 bg-white text-india-green rounded-full flex items-center justify-center mb-6 border-2 border-black">
                             <Calculator size={32} />
@@ -476,7 +475,6 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
 
                 {/* Career Break Runway Card */}
                 <div className="bg-india-purple text-white rounded-2xl p-8 border-4 border-black shadow-pop hover:-translate-y-2 transition-transform relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform"></div>
                     <div className="relative z-10">
                         <div className="w-16 h-16 bg-white text-india-purple rounded-full flex items-center justify-center mb-6 border-2 border-black">
                             <Plane size={32} />
@@ -494,7 +492,6 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
 
                 {/* FOMO Filter Card */}
                 <div className="bg-india-chili text-white rounded-2xl p-8 border-4 border-black shadow-pop hover:-translate-y-2 transition-transform relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform"></div>
                     <div className="relative z-10">
                         <div className="w-16 h-16 bg-white text-india-chili rounded-full flex items-center justify-center mb-6 border-2 border-black">
                             <Flame size={32} className="animate-pulse" />
@@ -512,7 +509,6 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
 
                 {/* Legal Shield Card */}
                 <div className="bg-india-blue text-white rounded-2xl p-8 border-4 border-black shadow-pop hover:-translate-y-2 transition-transform relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform"></div>
                     <div className="relative z-10">
                         <div className="w-16 h-16 bg-white text-india-blue rounded-full flex items-center justify-center mb-6 border-2 border-black">
                             <ShieldCheck size={32} />
@@ -530,7 +526,6 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
 
                 {/* Lifestyle Goals Card */}
                 <div className="bg-india-marigold text-black rounded-2xl p-8 border-4 border-black shadow-pop hover:-translate-y-2 transition-transform relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform"></div>
                     <div className="relative z-10">
                         <div className="w-16 h-16 bg-white text-india-marigold rounded-full flex items-center justify-center mb-6 border-2 border-black">
                             <Palmtree size={32} />
@@ -548,7 +543,6 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
 
                 {/* Credit & Loan Optimizer Card */}
                 <div className="bg-gray-800 text-white rounded-2xl p-8 border-4 border-black shadow-pop hover:-translate-y-2 transition-transform relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform"></div>
                     <div className="relative z-10">
                         <div className="w-16 h-16 bg-white text-gray-800 rounded-full flex items-center justify-center mb-6 border-2 border-black">
                             <CreditCard size={32} />
@@ -566,6 +560,95 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
             </div>
          </div>
       </section>
+
+      <InfoCards onViewMore={onNavigateToGyaan} />
+
+      {/* --- FLOATING CHAT WIDGET (URBAN DIDI) --- */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+          {/* Chat Button */}
+          <button 
+            onClick={() => setIsChatOpen(!isChatOpen)}
+            className="w-16 h-16 bg-india-pink rounded-full border-4 border-white shadow-pop flex items-center justify-center hover:scale-110 transition-transform group"
+          >
+              {isChatOpen ? <X size={32} className="text-white" /> : <Bot size={32} className="text-white animate-bounce" />}
+              {!isChatOpen && (
+                 <span className="absolute right-full mr-4 bg-black text-white text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                    Ask Didi
+                 </span>
+              )}
+          </button>
+
+          {/* Chat Window */}
+          {isChatOpen && (
+              <div className="absolute bottom-20 right-0 w-[350px] md:w-[400px] bg-india-cream rounded-2xl border-[6px] border-india-blue shadow-2xl overflow-hidden flex flex-col max-h-[600px] animate-in slide-in-from-bottom-10 fade-in">
+                  {/* Header */}
+                  <div className="bg-india-blue p-4 flex justify-between items-center border-b-4 border-black">
+                      <div className="flex items-center gap-3">
+                          <div className="bg-white p-2 rounded-full border-2 border-black">
+                              <Bot size={20} className="text-india-blue" />
+                          </div>
+                          <div>
+                             <h3 className="text-xl font-bold text-white font-serif leading-none">Didi AI</h3>
+                             <span className="text-[10px] text-white/80 uppercase tracking-widest font-bold">Smart Assistant</span>
+                          </div>
+                      </div>
+                  </div>
+
+                  {/* Messages Area */}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white min-h-[300px]">
+                      {chatMessages.map((msg, idx) => (
+                          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                              <div className={`max-w-[80%] p-3 rounded-xl border-2 text-sm font-medium ${
+                                  msg.role === 'user' 
+                                  ? 'bg-india-yellow text-black border-black rounded-tr-none' 
+                                  : 'bg-gray-100 text-gray-800 border-gray-300 rounded-tl-none'
+                              }`}>
+                                  {msg.text}
+                              </div>
+                          </div>
+                      ))}
+                      {isChatLoading && (
+                          <div className="flex justify-start">
+                              <div className="bg-gray-100 p-3 rounded-xl rounded-tl-none border-2 border-gray-300">
+                                  <Loader2 size={16} className="animate-spin text-gray-500" />
+                              </div>
+                          </div>
+                      )}
+                      <div ref={chatEndRef} />
+                  </div>
+
+                  {/* Input Area */}
+                  <div className="p-3 bg-gray-50 border-t-2 border-black">
+                      {chatImage && (
+                          <div className="mb-2 flex items-center gap-2 bg-white p-2 rounded border border-gray-300">
+                              <span className="text-xs font-bold text-green-600 truncate flex-1">Image Attached</span>
+                              <button onClick={() => setChatImage(null)}><X size={14} /></button>
+                          </div>
+                      )}
+                      <form onSubmit={handleChatSubmit} className="flex gap-2">
+                          <label className="p-3 bg-white border-2 border-black rounded-lg cursor-pointer hover:bg-gray-100 flex items-center justify-center">
+                              <Paperclip size={20} className="text-gray-600" />
+                              <input type="file" accept="image/*" onChange={handleChatImageUpload} className="hidden" />
+                          </label>
+                          <input 
+                              type="text" 
+                              value={chatInput}
+                              onChange={(e) => setChatInput(e.target.value)}
+                              placeholder="Ask anything..."
+                              className="flex-1 p-3 border-2 border-black rounded-lg font-medium focus:outline-none focus:ring-2 ring-india-blue"
+                          />
+                          <button 
+                              type="submit" 
+                              disabled={isChatLoading || (!chatInput && !chatImage)}
+                              className="p-3 bg-india-blue text-white rounded-lg border-2 border-black hover:bg-india-blue/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                              <Send size={20} />
+                          </button>
+                      </form>
+                  </div>
+              </div>
+          )}
+      </div>
 
       {/* Credit & Loan Optimizer Modal */}
       {isCreditModalOpen && (
@@ -735,161 +818,355 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
           </div>
       )}
 
-      {/* Lifestyle Goal Manager Modal */}
-      {isLifestyleModalOpen && (
+      {/* FOMO Filter Modal */}
+      {isFomoModalOpen && (
           <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-             <div className="w-full max-w-lg bg-india-cream rounded-2xl p-0 relative border-[6px] border-india-marigold shadow-pop overflow-hidden h-[85vh] flex flex-col">
-                <div className="bg-india-marigold p-4 flex justify-between items-center border-b-4 border-black shrink-0">
+             <div className="w-full max-w-lg bg-india-cream rounded-2xl p-0 relative border-[6px] border-india-chili shadow-pop overflow-hidden h-auto max-h-[85vh] flex flex-col">
+                <div className="bg-india-chili p-4 flex justify-between items-center border-b-4 border-black shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="bg-white p-2 rounded-full border-2 border-black">
-                            <Palmtree size={24} className="text-india-marigold" />
+                            <Flame size={24} className="text-india-chili" />
                         </div>
-                        <h3 className="text-2xl font-bold text-black font-serif">Lifestyle Manager</h3>
+                        <h3 className="text-2xl font-bold text-white font-serif">FOMO Filter</h3>
                     </div>
-                    <button onClick={() => setIsLifestyleModalOpen(false)} className="text-black hover:bg-black/10 rounded-full p-1">
+                    <button onClick={() => setIsFomoModalOpen(false)} className="text-white hover:bg-white/20 rounded-full p-1">
                         <X size={24} />
                     </button>
                 </div>
 
-                <div className="flex bg-white border-b-2 border-black">
-                    <button 
-                        onClick={() => setLifestyleTab('goals')}
-                        className={`flex-1 p-3 font-bold uppercase tracking-wide text-sm flex items-center justify-center gap-2 ${lifestyleTab === 'goals' ? 'bg-india-yellow text-black border-b-4 border-india-marigold' : 'text-gray-500 hover:bg-gray-50'}`}
-                    >
-                        <Sparkles size={16} /> Dream Calculator
-                    </button>
-                    <button 
-                        onClick={() => setLifestyleTab('fun')}
-                        className={`flex-1 p-3 font-bold uppercase tracking-wide text-sm flex items-center justify-center gap-2 ${lifestyleTab === 'fun' ? 'bg-india-yellow text-black border-b-4 border-india-marigold' : 'text-gray-500 hover:bg-gray-50'}`}
-                    >
-                        <Wine size={16} /> Guilt-Free Fun
-                    </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-                    {lifestyleTab === 'goals' ? (
-                        <div className="space-y-6">
-                            <div className="bg-white p-4 rounded-xl border-2 border-gray-200 text-center">
-                                <p className="text-sm text-gray-600 mb-4">Select a goal. We account for specific inflation (e.g. Travel costs rise faster than Milk!)</p>
-                                
-                                <div className="grid grid-cols-2 gap-3 mb-4">
-                                    {Object.entries(GOAL_TEMPLATES).map(([key, t]: [string, any]) => (
-                                        <button 
-                                            key={key}
-                                            onClick={() => setSelectedGoal(key)}
-                                            className={`p-3 rounded-lg border-2 flex flex-col items-center gap-2 transition-all ${selectedGoal === key ? `${t.color} border-current shadow-sm scale-105` : 'bg-gray-50 border-gray-200 opacity-60'}`}
-                                        >
-                                            {t.icon}
-                                            <span className="font-bold text-xs">{t.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
+                <div className="p-6 overflow-y-auto custom-scrollbar">
+                    {!fomoResult ? (
+                        <>
+                            <div className="bg-orange-100 border-2 border-orange-300 p-4 rounded-xl mb-6 text-center">
+                                <h4 className="font-bold text-orange-800 mb-1">Did someone say "Double your money"?</h4>
+                                <p className="text-sm text-gray-700">Tell us the "Hot Tip" you heard. Didi will check if it's a trap.</p>
                             </div>
 
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Cost Today (₹)</label>
-                                    <input 
-                                        type="number" 
-                                        value={goalCost}
-                                        onChange={(e) => setGoalCost(e.target.value)}
-                                        className="w-full p-3 border-2 border-black rounded-lg font-bold"
-                                        placeholder="200000"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Years to Goal</label>
-                                    <input 
-                                        type="range" 
-                                        min="1" max="10" 
-                                        value={goalYears}
-                                        onChange={(e) => setGoalYears(parseInt(e.target.value))}
-                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-india-marigold"
-                                    />
-                                    <div className="text-right font-bold text-india-marigold mt-1">{goalYears} Years</div>
-                                </div>
+                            <div className="mb-4">
+                                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">The Rumor / Tip</label>
+                                <textarea 
+                                    value={fomoQuery}
+                                    onChange={(e) => setFomoQuery(e.target.value)}
+                                    className="w-full p-3 border-2 border-black rounded-lg font-bold min-h-[100px]"
+                                    placeholder="e.g. My neighbor said buy 'MoonCoin', it will go 10x in 2 days..."
+                                />
                             </div>
 
-                            {calculateGoalMetrics().futureCost > 0 && (
-                                <div className="animate-in slide-in-from-bottom-4">
-                                    <div className="bg-india-yellow border-4 border-black p-4 rounded-xl shadow-[4px_4px_0_0_black] transform rotate-1">
-                                        <h4 className="font-bold text-center text-xs uppercase tracking-widest mb-4 border-b-2 border-black pb-2">Reality Check</h4>
-                                        
-                                        <div className="flex justify-between items-center mb-2 text-sm">
-                                            <span className="opacity-70">Inflation Rate:</span>
-                                            <span className="font-bold text-red-600">{(GOAL_TEMPLATES[selectedGoal] as any).inflation * 100}% (Specific)</span>
-                                        </div>
+                            <button 
+                                onClick={isFomoListening ? handleStopFomoListening : handleStartFomoListening}
+                                className={`w-full mb-4 py-3 rounded-xl font-bold border-2 border-black border-dashed flex items-center justify-center gap-2 transition-all
+                                    ${isFomoListening ? 'bg-red-50 text-red-600 animate-pulse border-red-500 border-solid' : 'bg-white text-gray-700 hover:bg-india-yellow/20'}`}
+                            >
+                                {isFomoListening ? <Loader2 className="animate-spin" size={20} /> : <Mic size={20} />}
+                                {isFomoListening ? 'Listening...' : 'Bolkar Batayein (Speak)'}
+                            </button>
 
-                                        <div className="bg-white p-3 rounded-lg border-2 border-black text-center mb-3">
-                                            <p className="text-xs text-gray-500 uppercase font-bold">Cost in {goalYears} Years</p>
-                                            <p className="text-3xl font-black text-india-blue">₹{calculateGoalMetrics().futureCost.toLocaleString('en-IN')}</p>
-                                        </div>
-
-                                        <div className="text-center">
-                                            <p className="text-sm font-bold">Save <span className="bg-black text-white px-2 py-0.5 rounded">₹{calculateGoalMetrics().sip.toLocaleString('en-IN')}/mo</span></p>
-                                            <p className="text-[10px] opacity-60 mt-1">*Assuming 12% investment returns</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                            <button 
+                                onClick={handleFomoCheck}
+                                disabled={isFomoLoading || !fomoQuery.trim()}
+                                className="w-full bg-india-blue text-white font-bold uppercase text-lg py-4 rounded-xl border-2 border-black shadow-pop active:shadow-none active:translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                            >
+                                {isFomoLoading ? <Loader2 className="animate-spin" /> : <ShieldAlert />}
+                                {isFomoLoading ? 'Checking Risk...' : 'Scan for Risk'}
+                            </button>
+                        </>
                     ) : (
-                        <div className="space-y-6">
-                            <div className="bg-pink-50 border-2 border-pink-200 p-4 rounded-xl">
-                                <h4 className="font-bold text-pink-600 mb-2 flex items-center gap-2"><Coffee size={18}/> The Latte Factor</h4>
-                                <p className="text-sm text-gray-700">
-                                    Stop feeling guilty about your coffee or outings. Once you pay your future self (Investments) and your present self (Bills), the rest is yours to BURN!
-                                </p>
+                        <div className="animate-in slide-in-from-bottom-4">
+                            <div className={`p-4 rounded-xl border-4 border-black mb-6 text-center shadow-md
+                                ${fomoResult.riskLevel === 'High' ? 'bg-red-100 border-red-600' : 
+                                  fomoResult.riskLevel === 'Medium' ? 'bg-yellow-100 border-yellow-600' : 
+                                  'bg-green-100 border-green-600'}`}>
+                                
+                                <div className="font-black text-3xl mb-1 uppercase tracking-tight">
+                                    {fomoResult.riskLevel} Risk
+                                </div>
+                                <div className="font-serif text-xl font-bold">
+                                    "{fomoResult.verdict}"
+                                </div>
                             </div>
 
                             <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Monthly Take-home Income</label>
-                                    <input 
-                                        type="number" 
-                                        value={funIncome}
-                                        onChange={(e) => setFunIncome(e.target.value)}
-                                        className="w-full p-3 border-2 border-black rounded-lg font-bold"
-                                        placeholder="e.g. 80000"
-                                    />
+                                <div className="bg-white p-4 rounded-xl border-2 border-gray-200">
+                                    <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+                                        <SearchCheck size={18} className="text-india-blue" /> Reality Check
+                                    </h4>
+                                    <p className="text-sm font-medium text-gray-600 leading-relaxed">
+                                        {fomoResult.analysis}
+                                    </p>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Fixed Bills (Rent/EMI)</label>
-                                        <input 
-                                            type="number" 
-                                            value={funFixed}
-                                            onChange={(e) => setFunFixed(e.target.value)}
-                                            className="w-full p-3 border-2 border-black rounded-lg font-bold"
-                                            placeholder="e.g. 30000"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold uppercase text-gray-500 mb-1">SIPs / Savings</label>
-                                        <input 
-                                            type="number" 
-                                            value={funInvest}
-                                            onChange={(e) => setFunInvest(e.target.value)}
-                                            className="w-full p-3 border-2 border-black rounded-lg font-bold"
-                                            placeholder="e.g. 15000"
-                                        />
-                                    </div>
+
+                                <div className="bg-green-50 p-4 rounded-xl border-2 border-green-200">
+                                    <h4 className="font-bold text-green-800 mb-2 flex items-center gap-2">
+                                        <Sparkles size={18} /> Better Alternative
+                                    </h4>
+                                    <p className="text-sm font-medium text-gray-800 leading-relaxed">
+                                        {fomoResult.recommendation}
+                                    </p>
                                 </div>
                             </div>
 
-                            {parseInt(funIncome) > 0 && (
-                                <div className="animate-in zoom-in-95 mt-4">
-                                    <div className="bg-india-blue text-white p-6 rounded-full aspect-square flex flex-col items-center justify-center border-4 border-black shadow-[4px_4px_0_0_#FF9933] mx-auto w-64 relative">
-                                        <Sparkles className="absolute top-4 right-8 text-india-yellow animate-pulse" />
-                                        <p className="font-serif text-lg text-india-yellow mb-1">Guilt-Free Fund</p>
-                                        <h3 className="text-4xl font-black mb-2">₹{calculateFunFund().guiltFree.toLocaleString('en-IN')}</h3>
-                                        <p className="text-sm font-bold bg-white/20 px-3 py-1 rounded-full">{calculateFunFund().percent}% of Income</p>
-                                        <p className="text-[10px] mt-4 opacity-70 max-w-[150px] text-center">Spend this on whatever makes you happy!</p>
-                                    </div>
-                                </div>
-                            )}
+                            <button 
+                                onClick={() => { setFomoResult(null); setFomoQuery(''); }}
+                                className="w-full mt-6 bg-black text-white font-bold py-3 rounded-xl border-2 border-gray-600 hover:bg-gray-800"
+                            >
+                                Check Another Tip
+                            </button>
                         </div>
                     )}
+                </div>
+             </div>
+          </div>
+      )}
+
+      {/* Tax Modal */}
+      {isTaxModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+             <div className="w-full max-w-5xl bg-india-cream rounded-2xl relative border-[6px] border-india-green shadow-pop overflow-hidden h-[90vh] flex flex-col">
+                {/* Header */}
+                <div className="bg-india-green p-4 flex justify-between items-center border-b-4 border-black shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-white p-2 rounded-full border-2 border-black">
+                            <Calculator size={24} className="text-india-green" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-white font-serif">Salary Decoder</h3>
+                    </div>
+                    <button onClick={() => setIsTaxModalOpen(false)} className="text-white hover:bg-white/20 rounded-full p-1"><X size={24} /></button>
+                </div>
+                
+                {/* Body - Split View */}
+                <div className="flex flex-col lg:flex-row flex-1 overflow-hidden bg-white">
+                    {/* Left Panel: Inputs */}
+                    <div className="flex-1 overflow-y-auto p-6 lg:border-r-4 lg:border-gray-200 custom-scrollbar bg-white">
+                        
+                        {/* File Upload Banner */}
+                        <div className="mb-8 bg-blue-50 p-5 rounded-xl border-2 border-dashed border-blue-300 relative group hover:border-blue-500 transition-colors">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-blue-100 p-3 rounded-full text-blue-600">
+                                    {isAnalyzingSlip ? <Loader2 className="animate-spin"/> : <Upload size={24} />}
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-blue-900">Auto-fill from Payslip</h4>
+                                    <p className="text-sm text-blue-700">Upload an image of your salary slip to fill details instantly.</p>
+                                </div>
+                            </div>
+                            <input 
+                                type="file" 
+                                accept="image/*"
+                                onChange={handleFileUpload} 
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                disabled={isAnalyzingSlip}
+                            />
+                        </div>
+
+                        <div className="space-y-8">
+                            {/* Section 1: Income */}
+                            <div className="relative border-l-4 border-india-blue pl-6 py-1">
+                                <h4 className="font-serif text-xl text-india-blue mb-4 flex items-center gap-2">
+                                    <span className="bg-india-blue text-white w-6 h-6 rounded-full text-xs flex items-center justify-center font-sans font-bold">1</span>
+                                    Income Details (Yearly)
+                                </h4>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Gross Annual Salary (CTC)</label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-3 text-gray-400 font-bold">₹</span>
+                                            <input 
+                                                type="number" 
+                                                value={salaryDetails.gross} 
+                                                onChange={(e) => setSalaryDetails({...salaryDetails, gross: parseInt(e.target.value) || 0})}
+                                                className="w-full p-3 pl-8 border-2 border-gray-300 rounded-lg font-bold focus:border-india-blue focus:ring-4 focus:ring-blue-100 transition-all"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Basic Salary</label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-3 text-gray-400 font-bold">₹</span>
+                                                <input 
+                                                    type="number" 
+                                                    value={salaryDetails.basic} 
+                                                    onChange={(e) => setSalaryDetails({...salaryDetails, basic: parseInt(e.target.value) || 0})}
+                                                    className="w-full p-3 pl-8 border-2 border-gray-300 rounded-lg font-bold focus:border-india-blue focus:ring-4 focus:ring-blue-100 transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">HRA Received</label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-3 text-gray-400 font-bold">₹</span>
+                                                <input 
+                                                    type="number" 
+                                                    value={salaryDetails.hraReceived} 
+                                                    onChange={(e) => setSalaryDetails({...salaryDetails, hraReceived: parseInt(e.target.value) || 0})}
+                                                    className="w-full p-3 pl-8 border-2 border-gray-300 rounded-lg font-bold focus:border-india-blue focus:ring-4 focus:ring-blue-100 transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section 2: Deductions */}
+                            <div className="relative border-l-4 border-india-green pl-6 py-1">
+                                <h4 className="font-serif text-xl text-india-green mb-4 flex items-center gap-2">
+                                    <span className="bg-india-green text-white w-6 h-6 rounded-full text-xs flex items-center justify-center font-sans font-bold">2</span>
+                                    Exemptions & Investments
+                                </h4>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Rent Paid (Yearly)</label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-3 text-gray-400 font-bold">₹</span>
+                                            <input 
+                                                type="number" 
+                                                value={salaryDetails.rentPaid} 
+                                                onChange={(e) => setSalaryDetails({...salaryDetails, rentPaid: parseInt(e.target.value) || 0})}
+                                                className="w-full p-3 pl-8 border-2 border-gray-300 rounded-lg font-bold focus:border-india-green focus:ring-4 focus:ring-green-100 transition-all"
+                                            />
+                                        </div>
+                                        <p className="text-[10px] text-gray-500 mt-1">*Required for HRA Exemption calculation</p>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-xs font-bold uppercase text-gray-500 mb-1">80C Investments (PPF, ELSS, LIC)</label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-3 text-gray-400 font-bold">₹</span>
+                                            <input 
+                                                type="number" 
+                                                value={salaryDetails.investments80C} 
+                                                onChange={(e) => setSalaryDetails({...salaryDetails, investments80C: parseInt(e.target.value) || 0})}
+                                                className="w-full p-3 pl-8 border-2 border-gray-300 rounded-lg font-bold focus:border-india-green focus:ring-4 focus:ring-green-100 transition-all"
+                                            />
+                                        </div>
+                                        <div className="w-full bg-gray-200 h-1.5 mt-2 rounded-full overflow-hidden">
+                                            <div className={`h-full ${salaryDetails.investments80C >= 150000 ? 'bg-green-500' : 'bg-yellow-500'}`} style={{width: `${Math.min(100, (salaryDetails.investments80C/150000)*100)}%`}}></div>
+                                        </div>
+                                        <p className="text-[10px] text-gray-500 mt-1 flex justify-between">
+                                            <span>Limit: ₹1.5 Lakh</span>
+                                            <span>{salaryDetails.investments80C >= 150000 ? 'Maxed Out!' : `Can invest ₹${(150000 - salaryDetails.investments80C).toLocaleString()} more`}</span>
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">NPS (80CCD)</label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-3 text-gray-400 font-bold">₹</span>
+                                                <input 
+                                                    type="number" 
+                                                    value={salaryDetails.investmentsNPS} 
+                                                    onChange={(e) => setSalaryDetails({...salaryDetails, investmentsNPS: parseInt(e.target.value) || 0})}
+                                                    className="w-full p-3 pl-8 border-2 border-gray-300 rounded-lg font-bold focus:border-india-green focus:ring-4 focus:ring-green-100 transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Medical Ins. (80D)</label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-3 text-gray-400 font-bold">₹</span>
+                                                <input 
+                                                    type="number" 
+                                                    value={salaryDetails.healthInsurance} 
+                                                    onChange={(e) => setSalaryDetails({...salaryDetails, healthInsurance: parseInt(e.target.value) || 0})}
+                                                    className="w-full p-3 pl-8 border-2 border-gray-300 rounded-lg font-bold focus:border-india-green focus:ring-4 focus:ring-green-100 transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Panel: Verdict */}
+                    <div className="flex-1 bg-gray-50 p-6 lg:p-8 overflow-y-auto custom-scrollbar flex flex-col">
+                         <div className="text-center mb-8">
+                             <h4 className="font-serif text-3xl text-gray-800 mb-2">Verdict ⚖️</h4>
+                             <p className="text-sm text-gray-500">Based on FY 2024-25 Rates</p>
+                         </div>
+
+                         {/* Comparison Cards */}
+                         <div className="grid grid-cols-2 gap-4 mb-8">
+                            <div className={`p-4 rounded-xl border-4 transition-all relative overflow-hidden ${taxResult.better === 'Old Regime' ? 'border-india-green bg-green-50 scale-105 shadow-md z-10' : 'border-gray-300 bg-white opacity-60 grayscale'}`}>
+                                {taxResult.better === 'Old Regime' && <div className="absolute top-0 right-0 bg-india-green text-white text-[10px] font-bold px-2 py-1 rounded-bl">WINNER</div>}
+                                <div className="text-xs uppercase font-bold text-gray-500 mb-2">Old Regime</div>
+                                <div className="text-2xl font-black text-gray-900 mb-1">₹{taxResult.old.toLocaleString()}</div>
+                                <div className="text-[10px] text-gray-500 font-medium border-t border-gray-200 pt-2 mt-2">
+                                    Taxable Income: ₹{taxResult.taxableOld.toLocaleString()}
+                                    <br/>
+                                    (HRA Exempt: ₹{taxResult.hraExempt.toLocaleString()})
+                                </div>
+                            </div>
+
+                            <div className={`p-4 rounded-xl border-4 transition-all relative overflow-hidden ${taxResult.better === 'New Regime' ? 'border-india-green bg-green-50 scale-105 shadow-md z-10' : 'border-gray-300 bg-white opacity-60 grayscale'}`}>
+                                {taxResult.better === 'New Regime' && <div className="absolute top-0 right-0 bg-india-green text-white text-[10px] font-bold px-2 py-1 rounded-bl">WINNER</div>}
+                                <div className="text-xs uppercase font-bold text-gray-500 mb-2">New Regime</div>
+                                <div className="text-2xl font-black text-gray-900 mb-1">₹{taxResult.new.toLocaleString()}</div>
+                                <div className="text-[10px] text-gray-500 font-medium border-t border-gray-200 pt-2 mt-2">
+                                    Taxable Income: ₹{taxResult.taxableNew.toLocaleString()}
+                                    <br/>
+                                    (Std Ded: ₹75k)
+                                </div>
+                            </div>
+                         </div>
+
+                         {/* Result Box */}
+                         <div className="bg-india-yellow border-4 border-black p-6 rounded-2xl shadow-[6px_6px_0_0_black] mb-8 text-center relative overflow-hidden transform rotate-1 hover:rotate-0 transition-transform">
+                             <div className="relative z-10">
+                                <h3 className="font-bold uppercase tracking-widest text-xs mb-2 opacity-60">Guru-ji Recommends</h3>
+                                <p className="font-serif text-3xl md:text-4xl text-india-blue mb-3 leading-none">
+                                    Choose {taxResult.better}
+                                </p>
+                                <div className="inline-block bg-white px-4 py-2 rounded-full border-2 border-black font-bold text-green-700 shadow-sm">
+                                    You save <span className="text-xl">₹{taxResult.diff.toLocaleString()}</span>
+                                </div>
+                             </div>
+                             {/* Decor */}
+                             <div className="absolute top-0 left-0 w-full h-full bg-pattern-dots opacity-10"></div>
+                         </div>
+
+                         {/* Actionable Nudges */}
+                         <div className="bg-white rounded-xl border-2 border-gray-200 p-5 shadow-sm">
+                             <h4 className="font-bold text-gray-700 flex items-center gap-2 mb-4 border-b pb-2">
+                                 <Sparkles size={18} className="text-india-pink" /> Smart Nudges
+                             </h4>
+                             <div className="space-y-3">
+                                {taxResult.better === 'Old Regime' && salaryDetails.investments80C < 150000 && (
+                                    <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                                        <TrendingUp className="text-blue-600 shrink-0 mt-0.5" size={16} />
+                                        <p className="text-sm text-blue-900">
+                                            <strong>Maximize 80C:</strong> Invest <span className="font-bold">₹{(150000 - salaryDetails.investments80C).toLocaleString()}</span> more in ELSS/PPF to reduce tax further.
+                                        </p>
+                                    </div>
+                                )}
+                                {taxResult.better === 'Old Regime' && salaryDetails.rentPaid > 100000 && salaryDetails.hraReceived > 0 && (
+                                    <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
+                                        <CheckCircle2 className="text-green-600 shrink-0 mt-0.5" size={16} />
+                                        <p className="text-sm text-green-900">
+                                            <strong>Rent Receipt:</strong> Ensure you have PAN of landlord since rent is {'>'} ₹1L.
+                                        </p>
+                                    </div>
+                                )}
+                                {salaryDetails.investmentsNPS === 0 && (
+                                    <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg border-l-4 border-purple-500">
+                                        <PiggyBank className="text-purple-600 shrink-0 mt-0.5" size={16} />
+                                        <p className="text-sm text-purple-900">
+                                            <strong>NPS Trick:</strong> Invest ₹50,000 in NPS (Tier 1) for extra deduction u/s 80CCD(1B).
+                                        </p>
+                                    </div>
+                                )}
+                                {taxResult.better === 'New Regime' && (
+                                    <div className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg border-l-4 border-yellow-500">
+                                        <Coffee className="text-yellow-700 shrink-0 mt-0.5" size={16} />
+                                        <p className="text-sm text-yellow-900">
+                                            <strong>Relax!</strong> New Regime is paperless. No need to submit investment proofs to HR.
+                                        </p>
+                                    </div>
+                                )}
+                             </div>
+                         </div>
+                    </div>
                 </div>
              </div>
           </div>

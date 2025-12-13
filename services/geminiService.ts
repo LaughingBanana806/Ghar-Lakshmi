@@ -208,6 +208,52 @@ export const askDidi = async (query: string, language: string = 'en'): Promise<s
   }
 };
 
+export const chatWithDidi = async (
+  history: { role: 'user' | 'model'; text: string }[],
+  message: string,
+  mode: 'saral' | 'smart',
+  image?: { data: string; mimeType: string }
+): Promise<string> => {
+  try {
+    const ai = getAIClient();
+    const systemPrompt = mode === 'saral' 
+      ? "You are 'Didi', a helpful, older sister figure who explains money matters to rural Indian women. Keep answers short, simple, and in Hinglish."
+      : "You are 'Didi', a smart, savvy financial assistant for modern Indian women. You are witty, use finance terms but keep it accessible. You are like a 'Fin-fluencer' friend.";
+
+    // Construct parts for the current turn
+    const currentParts: any[] = [{ text: message }];
+    if (image) {
+        currentParts.push({ inlineData: { mimeType: image.mimeType, data: image.data } });
+    }
+
+    // Construct full conversation for generateContent (stateless request)
+    // Note: history contains previous turns.
+    const contents = history.map(h => ({
+        role: h.role,
+        parts: [{ text: h.text }]
+    }));
+    
+    // Add current user message
+    contents.push({
+        role: 'user',
+        parts: currentParts
+    });
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: contents,
+      config: {
+        systemInstruction: systemPrompt,
+      }
+    });
+
+    return response.text || "I'm listening, but can't speak right now.";
+  } catch (error) {
+    console.error("Chat Didi Error:", error);
+    return "Network issue! Let's try that again.";
+  }
+};
+
 export const generateSpeech = async (text: string): Promise<string> => {
   try {
     const ai = getAIClient();
