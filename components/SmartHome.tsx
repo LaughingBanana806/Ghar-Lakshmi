@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import InfoCards from './InfoCards';
 import { FomoAnalysisResult, UserProfile, LegalVaultItem } from '../types';
-import { LineChart, TrendingUp, PieChart, Briefcase, Calculator, X, CheckCircle2, AlertCircle, ArrowRight, Upload, Loader2, Plane, Baby, GraduationCap, Coffee, AlertTriangle, Flame, ShieldAlert, Thermometer, SearchCheck, Mic, Lock, FileText, UserCheck, ShieldCheck, Trash2, Plus, Palmtree, Stethoscope, Car, Wine, Sparkles, Coins, CreditCard, Banknote, Percent, TrendingDown, MessageCircle, Send, Paperclip, Bot, PiggyBank } from 'lucide-react';
+import { LineChart, TrendingUp, PieChart, Briefcase, Calculator, X, CheckCircle2, AlertCircle, ArrowRight, Upload, Loader2, Plane, Baby, GraduationCap, Coffee, AlertTriangle, Flame, ShieldAlert, Thermometer, SearchCheck, Mic, Lock, FileText, UserCheck, ShieldCheck, Trash2, Plus, Palmtree, Stethoscope, Car, Wine, Sparkles, Coins, CreditCard, Banknote, Percent, TrendingDown, MessageCircle, Send, Paperclip, Bot, PiggyBank, Calendar } from 'lucide-react';
 import { analyzeSalarySlip, analyzeFomo, chatWithDidi } from '../services/geminiService';
 
 interface SmartHomeProps {
@@ -379,22 +379,36 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
     const today = new Date();
     const start = new Date(runwayData.startDate);
     const monthsUntilStart = Math.max(0, (start.getFullYear() - today.getFullYear()) * 12 + (start.getMonth() - today.getMonth()));
+    // Assume 7% average inflation
     const inflationFactor = Math.pow(1.07, monthsUntilStart / 12);
+    
+    // Future Monthly Expense
     let adjustedMonthlyExpense = Math.round(runwayData.monthlyExpenses * inflationFactor);
+    
     let extraCosts = 0;
     let extraCostsDescription = '';
+    
+    // Special additions based on type
     if (runwayData.breakType === 'maternity') {
+        // Assume medical costs inflate at 10%
         const medicalCost = Math.round(150000 * Math.pow(1.10, monthsUntilStart / 12));
         extraCosts += medicalCost;
+        // Baby expenses increase monthly burn by 20%
         adjustedMonthlyExpense = Math.round(adjustedMonthlyExpense * 1.20);
-        extraCostsDescription = `Includes ₹${(medicalCost/1000).toFixed(0)}k for medical & baby setup.`;
+        extraCostsDescription = `Includes ₹${(medicalCost/1000).toFixed(0)}k for delivery & baby gear. Monthly expenses +20%.`;
     } else if (runwayData.breakType === 'study') {
-        extraCosts += 200000;
-        extraCostsDescription = `Includes ₹2L for course fees/laptop.`;
+        extraCosts += 200000; // Tuition fees
+        extraCostsDescription = `Includes ₹2L for course fees & laptop.`;
     }
+    
+    // Total corpus required for the entire break duration
     const totalCost = (adjustedMonthlyExpense * runwayData.breakDurationMonths) + extraCosts;
     const shortfall = Math.max(0, totalCost - runwayData.existingSavings);
+    
+    // How many months can current savings last?
     const availableRunway = Math.max(0, (runwayData.existingSavings - extraCosts) / adjustedMonthlyExpense);
+    const monthlySavingsNeeded = monthsUntilStart > 0 ? Math.round(shortfall / monthsUntilStart) : shortfall;
+
     return {
         totalCost,
         shortfall,
@@ -402,7 +416,8 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
         adjustedMonthlyExpense,
         extraCosts,
         extraCostsDescription,
-        monthsUntilStart
+        monthsUntilStart,
+        monthlySavingsNeeded
     };
   };
 
@@ -1166,6 +1181,196 @@ const SmartHome: React.FC<SmartHomeProps> = ({ user, onNavigateToGyaan }) => {
                                 )}
                              </div>
                          </div>
+                    </div>
+                </div>
+             </div>
+          </div>
+      )}
+
+      {/* Runway Calculator Modal */}
+      {isRunwayModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+             <div className="w-full max-w-4xl bg-india-cream rounded-2xl relative border-[6px] border-india-purple shadow-pop overflow-hidden max-h-[90vh] flex flex-col">
+                {/* Header */}
+                <div className="bg-india-purple p-4 flex justify-between items-center border-b-4 border-black shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-white p-2 rounded-full border-2 border-black">
+                            <Plane size={24} className="text-india-purple" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-white font-serif">Career Runway Planner</h3>
+                    </div>
+                    <button onClick={() => setIsRunwayModalOpen(false)} className="text-white hover:bg-white/20 rounded-full p-1"><X size={24} /></button>
+                </div>
+
+                <div className="flex flex-col lg:flex-row flex-1 overflow-hidden bg-white">
+                    {/* Inputs Panel */}
+                    <div className="flex-1 overflow-y-auto p-6 lg:border-r-4 lg:border-gray-200 custom-scrollbar bg-white">
+                        <div className="mb-6 bg-purple-50 p-4 rounded-xl border-l-4 border-purple-500 text-sm text-purple-900">
+                            <strong>Why plan?</strong> Hidden costs (like medical inflation) can eat your savings faster than you think.
+                        </div>
+
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">When do you want to start?</label>
+                                <div className="relative">
+                                    <Calendar className="absolute left-3 top-3 text-gray-400" size={18}/>
+                                    <input 
+                                        type="date"
+                                        value={runwayData.startDate}
+                                        onChange={(e) => setRunwayData({...runwayData, startDate: e.target.value})}
+                                        className="w-full p-3 pl-10 border-2 border-gray-300 rounded-lg font-bold"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Current Monthly Expenses (Burn Rate)</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-3 text-gray-400 font-bold">₹</span>
+                                    <input 
+                                        type="number" 
+                                        value={runwayData.monthlyExpenses}
+                                        onChange={(e) => setRunwayData({...runwayData, monthlyExpenses: parseInt(e.target.value) || 0})}
+                                        className="w-full p-3 pl-8 border-2 border-gray-300 rounded-lg font-bold focus:border-india-purple focus:ring-4 focus:ring-purple-100 transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Planned Break Duration (Months)</label>
+                                <input 
+                                    type="range"
+                                    min="1" max="36"
+                                    value={runwayData.breakDurationMonths}
+                                    onChange={(e) => setRunwayData({...runwayData, breakDurationMonths: parseInt(e.target.value)})}
+                                    className="w-full accent-india-purple h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mb-2"
+                                />
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-gray-400">1 Month</span>
+                                    <span className="bg-india-purple text-white px-3 py-1 rounded-full font-bold text-sm">{runwayData.breakDurationMonths} Months</span>
+                                    <span className="text-xs font-bold text-gray-400">3 Years</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Existing Savings for Break</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-3 text-gray-400 font-bold">₹</span>
+                                    <input 
+                                        type="number" 
+                                        value={runwayData.existingSavings}
+                                        onChange={(e) => setRunwayData({...runwayData, existingSavings: parseInt(e.target.value) || 0})}
+                                        className="w-full p-3 pl-8 border-2 border-gray-300 rounded-lg font-bold focus:border-india-purple focus:ring-4 focus:ring-purple-100 transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-500 mb-3">Purpose of Break</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button 
+                                        onClick={() => setRunwayData({...runwayData, breakType: 'maternity'})}
+                                        className={`p-3 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${runwayData.breakType === 'maternity' ? 'bg-pink-50 border-pink-500 text-pink-700' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        <Baby size={24} />
+                                        <span className="text-xs font-bold">Maternity</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => setRunwayData({...runwayData, breakType: 'study'})}
+                                        className={`p-3 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${runwayData.breakType === 'study' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        <GraduationCap size={24} />
+                                        <span className="text-xs font-bold">Upskilling</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => setRunwayData({...runwayData, breakType: 'chill'})}
+                                        className={`p-3 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${runwayData.breakType === 'chill' ? 'bg-yellow-50 border-yellow-500 text-yellow-700' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        <Coffee size={24} />
+                                        <span className="text-xs font-bold">Sabbatical</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Results Panel */}
+                    <div className="flex-1 bg-gray-50 p-6 lg:p-8 overflow-y-auto custom-scrollbar flex flex-col">
+                        <div className="text-center mb-6">
+                             <h4 className="font-serif text-3xl text-gray-800 mb-1">The Reality Check</h4>
+                             <p className="text-sm text-gray-500">
+                                Starting in {runwayResult.monthsUntilStart} months
+                             </p>
+                        </div>
+
+                        <div className="bg-white rounded-xl border-2 border-gray-200 p-5 shadow-sm mb-6">
+                            <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-3">
+                                <span className="text-sm text-gray-600">Monthly Burn (Inflation Adjusted)</span>
+                                <span className="font-bold text-lg">₹{runwayResult.adjustedMonthlyExpense.toLocaleString()}</span>
+                            </div>
+                            {runwayResult.extraCosts > 0 && (
+                                <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-3 text-purple-700">
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold">One-time Costs</span>
+                                        <span className="text-[10px] opacity-70">{runwayResult.extraCostsDescription}</span>
+                                    </div>
+                                    <span className="font-bold text-lg">+ ₹{runwayResult.extraCosts.toLocaleString()}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between items-center pt-1">
+                                <span className="text-sm font-bold text-gray-800 uppercase">Total Corpus Needed</span>
+                                <span className="font-black text-2xl text-india-purple">₹{runwayResult.totalCost.toLocaleString()}</span>
+                            </div>
+                        </div>
+
+                        {/* Gap Analysis */}
+                        <div className="relative mb-6">
+                            <div className={`p-6 rounded-xl border-4 shadow-pop text-center relative overflow-hidden ${runwayResult.shortfall > 0 ? 'bg-red-50 border-red-500 text-red-900' : 'bg-green-50 border-green-500 text-green-900'}`}>
+                                <div className="relative z-10">
+                                    <p className="font-bold uppercase tracking-widest text-xs mb-2">
+                                        {runwayResult.shortfall > 0 ? 'Gap to Bridge' : 'You are Safe!'}
+                                    </p>
+                                    <p className="font-black text-4xl mb-2">
+                                        {runwayResult.shortfall > 0 ? `₹${runwayResult.shortfall.toLocaleString()}` : 'Fully Funded!'}
+                                    </p>
+                                    {runwayResult.shortfall > 0 && runwayResult.monthsUntilStart > 0 && (
+                                        <div className="inline-block bg-white px-4 py-2 rounded-lg border border-red-200 shadow-sm mt-2">
+                                            <p className="text-xs text-gray-500 uppercase font-bold mb-1">Target Monthly Savings</p>
+                                            <p className="font-black text-xl text-red-600">₹{runwayResult.monthlySavingsNeeded.toLocaleString()}/mo</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Runway Visualization */}
+                        <div className="bg-white p-5 rounded-xl border-2 border-gray-200">
+                            <h4 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
+                                <Plane size={18} className="text-india-purple" /> Runway Visualizer
+                            </h4>
+                            
+                            <div className="relative pt-6 pb-2">
+                                <div className="h-4 bg-gray-200 rounded-full w-full overflow-hidden">
+                                    <div 
+                                        className={`h-full transition-all duration-500 ${runwayResult.availableRunway >= runwayData.breakDurationMonths ? 'bg-green-500' : 'bg-red-500'}`}
+                                        style={{ width: `${Math.min(100, (runwayResult.availableRunway / runwayData.breakDurationMonths) * 100)}%` }}
+                                    ></div>
+                                </div>
+                                
+                                {/* Labels */}
+                                <div className="absolute top-0 left-0 -translate-x-1/2" style={{ left: `${Math.min(100, (runwayResult.availableRunway / runwayData.breakDurationMonths) * 100)}%` }}>
+                                    <div className="bg-black text-white text-xs font-bold px-2 py-1 rounded shadow-lg whitespace-nowrap">
+                                        You have {runwayResult.availableRunway.toFixed(1)} Months
+                                    </div>
+                                    <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-black mx-auto"></div>
+                                </div>
+
+                                <div className="flex justify-between text-xs font-bold text-gray-400 mt-2 uppercase">
+                                    <span>Start</span>
+                                    <span>Goal: {runwayData.breakDurationMonths} Months</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
              </div>
